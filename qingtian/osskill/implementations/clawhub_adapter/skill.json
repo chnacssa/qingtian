@@ -1,0 +1,55 @@
+{
+  "name": "clawhub_adapter",
+  "display_name": "ClawHub 适配器",
+  "version": "1.0.0",
+  "description": "ClawHub/Hermes 外部免费 SKILL.md 指令型技能适配器基类。加载 SKILL.md 作为 system prompt，通过底座 LLM 代理执行。",
+  "category": "system",
+  "tags": [
+    "system",
+    "adapter",
+    "framework"
+  ],
+  "author": {
+    "type": "enterprise",
+    "name": "ACSSA团队",
+    "contact": "dev@qingtian.dev"
+  },
+  "compliance": {
+    "data_handling": "local"
+  },
+  "copyright": {
+    "declaration": "© 2026 ACSSA团队。保留所有权利。",
+    "license": "Apache-2.0"
+  },
+  "license_info": {
+    "type": "free"
+  },
+  "entry": {
+    "class": "ClawHubSkill",
+    "file": "clawhub_adapter.py"
+  },
+  "permissions": [
+    "llm"
+  ],
+  "lifecycle": "on_demand",
+  "resources": {
+    "cpu": "low",
+    "memory_mb": 128,
+    "api_calls_per_minute": 30
+  },
+  "network": {
+    "outbound": {
+      "allowed": false,
+      "allowed_domains": []
+    },
+    "inbound": {
+      "port_required": false
+    }
+  },
+  "dependencies": {
+    "qingtian": ">=2.0.0",
+    "skills": {}
+  },
+  "commands": [],
+  "certificate": "d0eb02722da32a6311e51125c43488c90dc7515577e20b4d34ba19b1feae2fb3a75e411f15abb1fa96fc100dc06221adb9bac52ff0fd07e3f1eec1063e5b5c00"
+}

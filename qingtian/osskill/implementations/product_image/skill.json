@@ -1,0 +1,68 @@
+{
+  "name": "product_image",
+  "display_name": "产品图片管理",
+  "version": "1.0.0",
+  "description": "管理产品图片，支持上传/设主图/删除",
+  "category": "product",
+  "tags": [
+    "image",
+    "product",
+    "media"
+  ],
+  "author": {
+    "type": "enterprise",
+    "name": "ACSSA团队",
+    "contact": "dev@qingtian.dev"
+  },
+  "compliance": {
+    "data_handling": "local"
+  },
+  "copyright": {
+    "declaration": "© 2026 ACSSA团队。保留所有权利。",
+    "license": "Apache-2.0"
+  },
+  "license_info": {
+    "type": "free"
+  },
+  "entry": {
+    "class": "ProductImageSkill",
+    "file": "product_image.py"
+  },
+  "permissions": [
+    "network"
+  ],
+  "lifecycle": "on_demand",
+  "resources": {
+    "cpu": "low",
+    "memory_mb": 128,
+    "api_calls_per_minute": 30
+  },
+  "network": {
+    "outbound": {
+      "allowed": true,
+      "allowed_domains": [
+        "127.0.0.1",
+        "localhost"
+      ]
+    },
+    "inbound": {
+      "port_required": false
+    }
+  },
+  "dependencies": {
+    "qingtian": ">=2.0.0",
+    "skills": {}
+  },
+  "commands": [
+    {
+      "word": "img",
+      "action": "list_images",
+      "description": "产品图片管理",
+      "examples": [
+        "!!img!! 列出产品图片",
+        "!!img!! 上传新图片"
+      ]
+    }
+  ],
+  "certificate": "4fc465a61f8f2838b55b3e3deecf8d6656ee953bfe30be7594cb280000d2ac92f1794df9152c91f19c8b1660eee5341299656d4f589589a8c7483ee48cd03606"
+}

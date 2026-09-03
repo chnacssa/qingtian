@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>文件工作台 — 擎天</title>
+<style>
+:root {
+  --bg: #f5f7fa; --card: #fff; --text: #1a1a2e; --sub: #6b7280;
+  --primary: #4f46e5; --primary-h: #4338ca; --green: #10b981; --red: #ef4444;
+  --border: #e5e7eb; --radius: 8px; --shadow: 0 1px 3px rgba(0,0,0,.08);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+.topbar { background:var(--card); border-bottom:1px solid var(--border); padding:12px 24px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+.topbar h1 { font-size:18px; font-weight:600; color:var(--primary); }
+.topbar .user { font-size:12px; color:var(--sub); }
+.topbar .user a { color:var(--red); font-size:12px; margin-left:8px; cursor:pointer; text-decoration:none; }
+.container { max-width:900px; margin:0 auto; padding:24px; }
+.card { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:24px; margin-bottom:16px; }
+.card h2 { font-size:16px; margin-bottom:16px; color:var(--text); font-weight:600; }
+.dropzone { border:2px dashed var(--border); border-radius:12px; padding:32px; text-align:center; cursor:pointer; transition:all .2s; margin-bottom:16px; }
+.dropzone:hover,.dropzone.dragover { border-color:var(--primary); background:rgba(79,70,229,.04); }
+.dropzone .icon { font-size:36px; margin-bottom:8px; }
+.dropzone p { color:var(--sub); font-size:13px; }
+.btn { padding:8px 20px; border:none; border-radius:6px; font-size:14px; cursor:pointer; font-weight:500; transition:all .15s; }
+.btn-primary { background:var(--primary); color:#fff; }
+.btn-primary:hover { background:var(--primary-h); }
+.btn-sm { padding:4px 12px; font-size:12px; border:1px solid var(--border); background:var(--card); border-radius:6px; cursor:pointer; }
+.btn-sm:hover { border-color:var(--primary); color:var(--primary); }
+.btn-sm.danger { color:var(--red); }
+.btn-sm.danger:hover { border-color:var(--red); }
+/* 高特异性覆盖：.btn-sm 在 .btn-primary 之后声明，白底会盖掉蓝色背景 → 白底白字按钮不可见 */
+.btn-sm.btn-primary { background:var(--primary); color:#fff; border-color:var(--primary); }
+.btn-sm.btn-primary:hover { background:var(--primary-h); }
+.table-wrap { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th { text-align:left; padding:10px 12px; background:var(--bg); color:var(--sub); font-weight:500; border-bottom:2px solid var(--border); }
+td { padding:10px 12px; border-bottom:1px solid var(--border); }
+.file-id { font-size:11px; color:var(--sub); font-family:monospace; }
+.empty { color:var(--sub); text-align:center; padding:24px; }
+.hidden { display:none !important; }
+.imp-section { border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; margin-bottom:12px; }
+.imp-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.imp-desc { color:var(--sub); font-size:12px; margin-top:2px; }
+.imp-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.imp-manual { margin-top:10px; padding-top:10px; border-top:1px dashed var(--border); }
+.imp-manual textarea { width:100%; min-height:64px; border:1px solid var(--border); border-radius:6px; padding:8px; font:inherit; resize:vertical; }
+.imp-manual .row { display:flex; gap:8px; align-items:center; margin-top:8px; }
+.file-label { font-size:12px; color:var(--sub); }
+.toast { position:fixed; top:16px; right:16px; padding:12px 20px; border-radius:var(--radius); color:#fff; font-size:13px; z-index:999; animation:slideIn .3s ease; max-width:360px; }
+.toast.error { background:var(--red); }
+.toast.success { background:var(--green); }
+@keyframes slideIn { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <h1 id="sysTitle">📦 文件工作台</h1>
+  <div class="user" id="userInfo"></div>
+</header>
+
+<div class="container">
+  <div class="card">
+    <h2>📤 上传文件</h2>
+    <div class="dropzone" id="dropzone">
+      <div class="icon">📁</div>
+      <p>点击选择或拖拽文件到此处（可多选）</p>
+    </div>
+    <input type="file" id="fileInput" multiple class="hidden" style="display:none">
+    <button class="btn btn-primary" id="uploadBtn" onclick="uploadFiles()">上传到汇川</button>
+    <div id="uploadResult" style="margin-top:12px"></div>
+  </div>
+
+  <div class="card">
+    <h2>🗂 已上传文件</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>文件名</th><th>大小</th><th>上传时间</th><th>文件ID</th><th>操作</th></tr></thead>
+        <tbody id="fileTable"></tbody>
+      </table>
+    </div>
+    <div class="empty hidden" id="emptyState">暂无文件，上传后在此查看</div>
+  </div>
+
+  <div class="card hidden" id="importCard">
+    <h2>📥 销售资料导入</h2>
+    <p style="color:var(--sub);font-size:13px;margin-bottom:14px">
+      下载模板填写后选择文件导入；企业背景/还盘策略也可直接填写保存。
+      企业背景与还盘策略会在报价/还盘时自动注入 LLM 决策。<b>文件导入请保留模板中的标签列，否则不会被自动注入。</b>
+      <b>重复导入同一文件会新增记录。</b>
+    </p>
+
+    <div class="imp-section">
+      <div class="imp-head">
+        <div><b>📦 产品目录与价格</b><div class="imp-desc">产品目录 + 市场价格（对外报价）+ 最低价（底价），报价时的硬约束</div></div>
+        <div class="imp-actions">
+          <button class="btn-sm" onclick="downloadTpl('products')">下载模板</button>
+          <span class="file-label" id="fileLabel_products">未选择文件</span>
+          <input type="file" id="file_products" accept=".xlsx" style="display:none" onchange="onPickFile('products', this)">
+          <button class="btn-sm" onclick="document.getElementById('file_products').click()">选择文件</button>
+          <button class="btn-sm btn-primary" id="btn_products" onclick="importExcel('products')">导入</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="imp-section">
+      <div class="imp-head">
+        <div><b>🏢 企业背景</b><div class="imp-desc">企业规模、市场定位、主营业务等，报价/还盘时注入 LLM</div></div>
+        <div class="imp-actions">
+          <button class="btn-sm" onclick="downloadTpl('knowledge','enterprise_profile')">下载模板</button>
+          <span class="file-label" id="fileLabel_profile">未选择文件</span>
+          <input type="file" id="file_profile" accept=".xlsx" style="display:none" onchange="onPickFile('profile', this)">
+          <button class="btn-sm" onclick="document.getElementById('file_profile').click()">选择文件</button>
+          <button class="btn-sm btn-primary" id="btn_profile" onclick="importExcel('profile')">导入</button>
+        </div>
+      </div>
+      <div class="imp-manual">
+        <textarea id="txt_profile" placeholder="直接填写企业背景，如：我司为华北区域电缆主要供应商，主营 YJV 系列，年销售额约 8000 万，市场定位中高端……"></textarea>
+        <div class="row"><button class="btn-sm btn-primary" onclick="saveKnowledge('profile')">保存企业背景</button><span class="file-label">保存后报价/还盘时自动生效</span></div>
+      </div>
+    </div>
+
+    <div class="imp-section">
+      <div class="imp-head">
+        <div><b>💬 还盘策略</b><div class="imp-desc">议价规则、最低限价、折扣策略等，还盘决策时注入 LLM</div></div>
+        <div class="imp-actions">
+          <button class="btn-sm" onclick="downloadTpl('knowledge','pricing_policy')">下载模板</button>
+          <span class="file-label" id="fileLabel_policy">未选择文件</span>
+          <input type="file" id="file_policy" accept=".xlsx" style="display:none" onchange="onPickFile('policy', this)">
+          <button class="btn-sm" onclick="document.getElementById('file_policy').click()">选择文件</button>
+          <button class="btn-sm btn-primary" id="btn_policy" onclick="importExcel('policy')">导入</button>
+        </div>
+      </div>
+      <div class="imp-manual">
+        <textarea id="txt_policy" placeholder="直接填写还盘/价格策略，如：价格底线为目录价 8 折，量大于 1 万米可再让 3%，急单上浮 5%……"></textarea>
+        <div class="row"><button class="btn-sm btn-primary" onclick="saveKnowledge('policy')">保存还盘策略</button><span class="file-label">保存后还盘决策时自动生效</span></div>
+      </div>
+    </div>
+
+    <div class="imp-section">
+      <div class="imp-head">
+        <div><b>🤝 客户资料</b><div class="imp-desc">客户公司、行业、地区、类型</div></div>
+        <div class="imp-actions">
+          <button class="btn-sm" onclick="downloadTpl('customers')">下载模板</button>
+          <span class="file-label" id="fileLabel_customers">未选择文件</span>
+          <input type="file" id="file_customers" accept=".xlsx" style="display:none" onchange="onPickFile('customers', this)">
+          <button class="btn-sm" onclick="document.getElementById('file_customers').click()">选择文件</button>
+          <button class="btn-sm btn-primary" id="btn_customers" onclick="importExcel('customers')">导入</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="imp-section">
+      <div class="imp-head">
+        <div><b>🏭 竞品资料</b><div class="imp-desc">主要竞争对手、优劣势</div></div>
+        <div class="imp-actions">
+          <button class="btn-sm" onclick="downloadTpl('competitors')">下载模板</button>
+          <span class="file-label" id="fileLabel_competitors">未选择文件</span>
+          <input type="file" id="file_competitors" accept=".xlsx" style="display:none" onchange="onPickFile('competitors', this)">
+          <button class="btn-sm" onclick="document.getElementById('file_competitors').click()">选择文件</button>
+          <button class="btn-sm btn-primary" id="btn_competitors" onclick="importExcel('competitors')">导入</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="imp-section">
+      <div class="imp-head">
+        <div><b>🗣 谈判话术</b><div class="imp-desc">常见场景应对话术</div></div>
+        <div class="imp-actions">
+          <button class="btn-sm" onclick="downloadTpl('scripts')">下载模板</button>
+          <span class="file-label" id="fileLabel_scripts">未选择文件</span>
+          <input type="file" id="file_scripts" accept=".xlsx" style="display:none" onchange="onPickFile('scripts', this)">
+          <button class="btn-sm" onclick="document.getElementById('file_scripts').click()">选择文件</button>
+          <button class="btn-sm btn-primary" id="btn_scripts" onclick="importExcel('scripts')">导入</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card hidden" id="procImportCard">
+    <h2>📥 采购资料预训练</h2>
+    <p style="color:var(--sub);font-size:13px;margin-bottom:14px">
+      下载模板填写后选择文件导入。采购价目表/历史询价会成为<b>谈判参考价</b>（优先于历史成交）；
+      公司背景/采购制度会在谈判目标解析时自动注入 LLM 决策。<b>文件导入请保留模板中的标签列，否则不会被自动注入。</b>
+      <b>重复导入同一产品/供应商会覆盖为最新数据。</b>
+    </p>
+
+    <div class="imp-section">
+      <div class="imp-head">
+        <div><b>📋 采购价目表</b><div class="imp-desc">产品 + 参考价，谈判时优先参考（覆盖历史成交）</div></div>
+        <div class="imp-actions">
+          <button class="btn-sm" onclick="downloadTpl('p_price_lists')">下载模板</button>
+          <span class="file-label" id="fileLabel_p_price_lists">未选择文件</span>
+          <input type="file" id="file_p_price_lists" accept=".xlsx" style="display:none" onchange="onPickFile('p_price_lists', this)">
+          <button class="btn-sm" onclick="document.getElementById('file_p_price_lists').click()">选择文件</button>
+          <button class="btn-sm btn-primary" id="btn_p_price_lists" onclick="importExcel('p_price_lists')">导入</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="imp-section">
+      <div class="imp-head">
+        <div><b>🏭 供应商台账</b><div class="imp-desc">供应商公司、行业、账期/物流偏好</div></div>
+        <div class="imp-actions">
+          <button class="btn-sm" onclick="downloadTpl('p_suppliers')">下载模板</button>
+          <span class="file-label" id="fileLabel_p_suppliers">未选择文件</span>
+          <input type="file" id="file_p_suppliers" accept=".xlsx" style="display:none" onchange="onPickFile('p_suppliers', this)">
+          <button class="btn-sm" onclick="document.getElementById('file_p_suppliers').click()">选择文件</button>
+          <button class="btn-sm btn-primary" id="btn_p_suppliers" onclick="importExcel('p_suppliers')">导入</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="imp-section">
+      <div class="imp-head">
+        <div><b>🏢 公司背景/采购制度</b><div class="imp-desc">公司采购背景、付款习惯、采购品类偏好，谈判时注入 LLM</div></div>
+        <div class="imp-actions">
+          <button class="btn-sm" onclick="downloadTpl('p_knowledge','company_profile')">下载模板</button>
+          <span class="file-label" id="fileLabel_p_knowledge">未选择文件</span>
+          <input type="file" id="file_p_knowledge" accept=".xlsx" style="display:none" onchange="onPickFile('p_knowledge', this)">
+          <button class="btn-sm" onclick="document.getElementById('file_p_knowledge').click()">选择文件</button>
+          <button class="btn-sm btn-primary" id="btn_p_knowledge" onclick="importExcel('p_knowledge')">导入</button>
+        </div>
+      </div>
+      <div class="imp-manual">
+        <textarea id="txt_p_knowledge" placeholder="直接填写公司采购背景，如：我司主要采购电缆/变压器/配电柜，付款习惯货到验收后30天内，物流由供应商承担，优先货到付款能包送货的供应商……"></textarea>
+        <div class="row"><button class="btn-sm btn-primary" onclick="saveKnowledge('p_knowledge')">保存公司背景</button><span class="file-label">保存后谈判目标解析时自动生效</span></div>
+      </div>
+    </div>
+
+    <div class="imp-section">
+      <div class="imp-head">
+        <div><b>📜 历史询价记录</b><div class="imp-desc">历史询价/成交记录，补充参考价数据</div></div>
+        <div class="imp-actions">
+          <button class="btn-sm" onclick="downloadTpl('p_inquiries')">下载模板</button>
+          <span class="file-label" id="fileLabel_p_inquiries">未选择文件</span>
+          <input type="file" id="file_p_inquiries" accept=".xlsx" style="display:none" onchange="onPickFile('p_inquiries', this)">
+          <button class="btn-sm" onclick="document.getElementById('file_p_inquiries').click()">选择文件</button>
+          <button class="btn-sm btn-primary" id="btn_p_inquiries" onclick="importExcel('p_inquiries')">导入</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="imp-section">
+      <div class="imp-head">
+        <div><b>🗣 谈判话术</b><div class="imp-desc">常见谈判场景应对话术</div></div>
+        <div class="imp-actions">
+          <button class="btn-sm" onclick="downloadTpl('p_scripts')">下载模板</button>
+          <span class="file-label" id="fileLabel_p_scripts">未选择文件</span>
+          <input type="file" id="file_p_scripts" accept=".xlsx" style="display:none" onchange="onPickFile('p_scripts', this)">
+          <button class="btn-sm" onclick="document.getElementById('file_p_scripts').click()">选择文件</button>
+          <button class="btn-sm btn-primary" id="btn_p_scripts" onclick="importExcel('p_scripts')">导入</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="bindCard">
+    <h2>🔗 通道身份绑定</h2>
+    <p style="color:var(--sub);font-size:13px;margin-bottom:14px">
+      绑定聊天通道（飞书/企业微信等）的 open_id 到当前账号（agent 名）。绑定后通过该通道发指令时，
+      系统能把你识别为本账号，文件下载/执行不再因身份不一致报错（403）。
+      <b>channel 填 feishu / dingtalk / wechat / slack / discord；channel_id 填你的 open_id。</b>
+    </p>
+    <div class="imp-section">
+      <div class="imp-head">
+        <div><b>➕ 新增绑定</b><div class="imp-desc">需与登录账号一致才有效</div></div>
+        <div class="imp-actions">
+          <input id="bind_channel" placeholder="channel, 如 feishu" style="width:110px;padding:4px 6px" />
+          <input id="bind_channel_id" placeholder="open_id, 如 ou_xxx" style="width:170px;padding:4px 6px" />
+          <button class="btn-sm btn-primary" id="btn_bind" onclick="bindChannel()">绑定</button>
+        </div>
+      </div>
+    </div>
+    <div class="imp-section">
+      <div><b>📋 已绑定</b><div class="imp-desc" id="bindList">加载中…</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '';
+let TOKEN = '', ENT = '', USER = '';
+
+function get(key) { return localStorage.getItem(key) || ''; }
+function set(key, v) { localStorage.setItem(key, v); }
+function del(key) { localStorage.removeItem(key); }
+
+function toast(msg, type = 'success') {
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+function fmtSize(n) {
+  n = Number(n) || 0;
+  if (n < 1024) return n + ' B';
+  if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+  return (n / 1024 / 1024).toFixed(1) + ' MB';
+}
+
+// 系统名按路径识别：/v1/procurement/ → 采购系统，/v1/sales/ → 销售系统
+function sysName() {
+  const p = location.pathname;
+  if (p.includes('sales')) return { icon: '💰', name: '销售系统' };
+  if (p.includes('procurement')) return { icon: '📦', name: '采购系统' };
+  return { icon: '📁', name: '文件工作台' };
+}
+
+// 启动：读登录态，无则跳门户
+(function init() {
+  TOKEN = get('acssa_token') || get('bidding_token');
+  ENT = get('acssa_ent') || get('bidding_ent') || '';
+  USER = get('acssa_user') || get('bidding_user') || '';
+  if (!TOKEN) { location.replace('/portal'); return; }
+
+  const s = sysName();
+  document.title = s.name + ' — 擎天';
+  document.getElementById('sysTitle').textContent = s.icon + ' ' + s.name;
+  // 销售资料导入仅销售系统显示；采购资料预训练仅采购系统显示（2026-08-09）
+  const isSales = location.pathname.includes('sales');
+  const isProc = location.pathname.includes('procurement');
+  document.getElementById('importCard').classList.toggle('hidden', !isSales);
+  const procCard = document.getElementById('procImportCard');
+  if (procCard) procCard.classList.toggle('hidden', !isProc);
+  const u = document.getElementById('userInfo');
+  u.textContent = (USER || ENT) + ' | ';
+  const a = document.createElement('a');
+  a.textContent = '退出'; a.onclick = logout;
+  u.appendChild(a);
+
+  document.getElementById('dropzone').onclick = () => document.getElementById('fileInput').click();
+  document.getElementById('dropzone').ondragover = e => { e.preventDefault(); e.target.classList.add('dragover'); };
+  document.getElementById('dropzone').ondragleave = e => { e.target.classList.remove('dragover'); };
+  document.getElementById('dropzone').ondrop = e => { e.preventDefault(); e.target.classList.remove('dragover'); handleFiles(e.dataTransfer.files); };
+  document.getElementById('fileInput').onchange = e => handleFiles(e.target.files);
+
+  loadFiles();
+  loadBindings();
+})();
+
+// ── 通道身份绑定（open_id ↔ agent 名） ─────────
+async function loadBindings() {
+  const el = document.getElementById('bindList');
+  if (!el) return;
+  try {
+    const res = await fetch(API + '/v1/portal/bindings', {
+      headers: { 'Authorization': 'Bearer ' + TOKEN },
+    });
+    if (res.status === 401) { logout(); return; }
+    if (!res.ok) { el.textContent = '加载失败'; return; }
+    const d = await res.json();
+    const b = (d.bindings || []).map(x =>
+      '<div style="font-size:13px;margin-bottom:4px">' + esc(x.channel) + ': <span class="file-id">' + esc(x.channel_id) + '</span> → ' +
+      '<button class="btn-sm" onclick="unbindChannel(\'' + esc(x.channel) + '\',\'' + esc(x.channel_id) + '\', this)">解绑</button></div>'
+    ).join('') || '<span style="color:var(--sub)">暂无绑定</span>';
+    el.innerHTML = b;
+  } catch (e) { el.textContent = '加载失败'; }
+}
+
+async function bindChannel() {
+  const ch = document.getElementById('bind_channel').value.trim();
+  const cid = document.getElementById('bind_channel_id').value.trim();
+  if (!ch || !cid) return toast('请填写 channel 和 open_id', 'error');
+  const btn = document.getElementById('btn_bind');
+  btn.disabled = true; btn.textContent = '绑定中...';
+  try {
+    const res = await fetch(API + '/v1/portal/bindings', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ channel: ch, channel_id: cid }),
+    });
+    if (res.status === 401) { logout(); return; }
+    const d = await res.json().catch(() => ({}));
+    if (res.ok) { toast('绑定成功'); loadBindings(); }
+    else toast('绑定失败: ' + (d.detail || ''), 'error');
+  } catch (e) { toast('绑定失败: ' + e.message, 'error'); }
+  btn.disabled = false; btn.textContent = '绑定';
+}
+
+async function unbindChannel(ch, cid, btn) {
+  if (!confirm('解绑 ' + ch + ':' + cid + '？')) return;
+  if (btn) btn.disabled = true;
+  try {
+    const res = await fetch(API + '/v1/portal/bindings/' + encodeURIComponent(ch) + '/' + encodeURIComponent(cid), {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + TOKEN },
+    });
+    if (res.status === 401) { logout(); return; }
+    if (res.ok) { toast('已解绑'); loadBindings(); }
+    else toast('解绑失败', 'error');
+  } catch (e) { toast('解绑失败: ' + e.message, 'error'); }
+}
+
+function logout() {
+  localStorage.removeItem('acssa_token'); localStorage.removeItem('acssa_ent');
+  localStorage.removeItem('acssa_user'); localStorage.removeItem('acssa_role'); localStorage.removeItem('acssa_app');
+  location.replace('/portal');
+}
+
+let _pending = [];
+let _files = [];  // 当前加载的文件列表，供下载取真实文件名
+function handleFiles(files) {
+  _pending = Array.from(files || []);
+  const r = document.getElementById('uploadResult');
+  if (_pending.length) r.innerHTML = '<div style="color:var(--sub);font-size:13px">已选择 <b>' + _pending.length + '</b> 个文件，点击「上传到汇川」开始上传</div>';
+}
+
+async function uploadFiles() {
+  if (!_pending.length) return toast('请先选择文件', 'error');
+  const btn = document.getElementById('uploadBtn');
+  btn.disabled = true; btn.textContent = '上传中...';
+  const r = document.getElementById('uploadResult');
+  let okCount = 0, failCount = 0;
+  const rows = [];
+  for (const f of _pending) {
+    const fd = new FormData();
+    fd.append('file', f);
+    try {
+      const res = await fetch(API + '/v1/portal/files/upload', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + TOKEN },
+        body: fd,
+      });
+      if (res.ok) {
+        const d = await res.json();
+        okCount++;
+        rows.push('<div style="font-size:13px;margin-bottom:4px">✅ ' + esc(f.name) +
+          ' → <span class="file-id">' + esc(d.file_id) + '</span> ' +
+          '<button class="btn-sm" onclick="copyId(\'' + esc(d.file_id) + '\', this)">复制ID</button></div>');
+      } else {
+        failCount++;
+        rows.push('<div style="font-size:13px;color:var(--red);margin-bottom:4px">❌ ' + esc(f.name) + ' 上传失败</div>');
+      }
+    } catch (e) {
+      failCount++;
+      rows.push('<div style="font-size:13px;color:var(--red);margin-bottom:4px">❌ ' + esc(f.name) + ': ' + esc(e.message) + '</div>');
+    }
+  }
+  r.innerHTML = rows.join('');
+  toast('上传完成：成功 ' + okCount + '，失败 ' + failCount);
+  btn.disabled = false; btn.textContent = '上传到汇川';
+  _pending = [];
+  loadFiles();
+}
+
+function copyId(id, btn) {
+  const done = () => { btn.textContent = '已复制'; setTimeout(() => btn.textContent = '复制ID', 1200); toast('文件ID已复制'); };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(id).then(done).catch(() => fallbackCopy(id, done));
+  } else fallbackCopy(id, done);
+}
+function fallbackCopy(text, done) {
+  const ta = document.createElement('textarea');
+  ta.value = text; document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); done(); } catch (_) {}
+  ta.remove();
+}
+
+async function loadFiles() {
+  try {
+    const res = await fetch(API + '/v1/portal/files', {
+      headers: { 'Authorization': 'Bearer ' + TOKEN },
+    });
+    if (res.status === 401) { logout(); return; }
+    if (!res.ok) { toast('加载文件列表失败', 'error'); return; }
+    const d = await res.json();
+    const tb = document.getElementById('fileTable');
+    const empty = document.getElementById('emptyState');
+    const files = d.files || [];
+    _files = files;  // 供下载取真实文件名
+    empty.classList.toggle('hidden', files.length > 0);
+    tb.innerHTML = files.map(f => {
+      const fid = f.file_id;
+      return '<tr>' +
+        '<td>' + esc(f.file_name || '未命名') + '</td>' +
+        '<td>' + fmtSize(f.file_size) + '</td>' +
+        '<td style="color:var(--sub)">' + esc(f.created_at || '') + '</td>' +
+        '<td class="file-id">' + esc(fid) + '</td>' +
+        '<td>' +
+          '<button class="btn-sm" onclick="copyId(\'' + esc(fid) + '\', this)">复制ID</button> ' +
+          '<button class="btn-sm" onclick="downloadFile(\'' + esc(fid) + '\')">下载</button> ' +
+          '<button class="btn-sm danger" onclick="deleteFile(\'' + esc(fid) + '\', this)">删除</button>' +
+        '</td></tr>';
+    }).join('');
+  } catch (e) {
+    toast('加载文件列表失败: ' + esc(e.message), 'error');
+  }
+}
+
+async function downloadFile(id) {
+  try {
+    const r = await fetch(API + '/v1/portal/files/' + encodeURIComponent(id) + '/download', {
+      headers: { 'Authorization': 'Bearer ' + TOKEN },
+    });
+    if (!r.ok) { toast('下载失败', 'error'); return; }
+    const blob = await r.blob();
+    const f = _files.find(x => x.file_id === id);
+    const name = (f && f.file_name) ? f.file_name : id;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } catch (e) {
+    toast('下载失败: ' + esc(e.message), 'error');
+  }
+}
+
+async function deleteFile(id, btn) {
+  if (!confirm('确认删除该文件？')) return;
+  btn.disabled = true;
+  try {
+    const res = await fetch(API + '/v1/portal/files/' + encodeURIComponent(id), {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + TOKEN },
+    });
+    if (res.ok) { toast('已删除'); loadFiles(); }
+    else { toast('删除失败', 'error'); btn.disabled = false; }
+  } catch (e) {
+    toast('删除失败: ' + esc(e.message), 'error');
+    btn.disabled = false;
+  }
+}
+
+// ── 资料导入（销售/采购按系统分流，2026-08-09） ──────
+// 销售 profile/policy 分区走 knowledge 导入（带固定标签）；采购 p_ 前缀分区映射到对应 kind。
+const SYS = location.pathname.includes('sales') ? 'sales' : 'procurement';
+const IMP_KIND = { products: 'products', profile: 'knowledge', policy: 'knowledge',
+                   customers: 'customers', competitors: 'competitors', scripts: 'scripts',
+                   // 采购分区（2026-08-09）
+                   p_price_lists: 'price_lists', p_suppliers: 'suppliers',
+                   p_knowledge: 'knowledge', p_inquiries: 'inquiries', p_scripts: 'scripts' };
+
+let _impFiles = {};
+function onPickFile(kind, input) {
+  _impFiles[kind] = input.files[0] || null;
+  const lbl = document.getElementById('fileLabel_' + kind);
+  if (lbl) lbl.textContent = _impFiles[kind] ? _impFiles[kind].name : '未选择文件';
+}
+
+async function importExcel(kind) {
+  const f = _impFiles[kind];
+  if (!f) return toast('请先选择文件', 'error');
+  const btn = document.getElementById('btn_' + kind);
+  btn.disabled = true; btn.textContent = '导入中...';
+  try {
+    // 两步式：先上传汇川拿 file_id，再触发 skill 导入
+    const fd = new FormData(); fd.append('file', f);
+    const up = await fetch(API + '/v1/portal/files/upload', {
+      method: 'POST', headers: { 'Authorization': 'Bearer ' + TOKEN }, body: fd,
+    });
+    if (up.status === 401) return logout();
+    if (!up.ok) { toast('文件上传失败', 'error'); return; }
+    const d = await up.json();
+
+    const res = await fetch(API + '/v1/' + SYS + '/import', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind: IMP_KIND[kind], file_id: d.file_id, filename: f.name }),
+    });
+    if (res.status === 401) return logout();
+    if (!res.ok) {
+      const r = await res.json().catch(() => ({}));
+      toast(r.detail || '导入失败', 'error');
+      return;
+    }
+    const r = await res.json();
+    if (r.ok) {
+      let msg = '导入完成：成功 ' + r.imported + '/' + r.total;
+      if (r.errors && r.errors.length) msg += '；跳过 ' + r.errors.length + ' 行';
+      toast(msg);
+    } else {
+      toast(r.error || '导入失败', 'error');
+    }
+  } catch (e) {
+    toast('导入失败: ' + esc(e.message), 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '导入';
+    _impFiles[kind] = null;
+    const inp = document.getElementById('file_' + kind); if (inp) inp.value = '';
+    const lbl = document.getElementById('fileLabel_' + kind); if (lbl) lbl.textContent = '未选择文件';
+  }
+}
+
+function downloadTpl(kind, tag) {
+  let url = API + '/v1/' + SYS + '/templates/' + IMP_KIND[kind];
+  if (tag) url += '?tag=' + encodeURIComponent(tag);
+  fetch(url, { headers: { 'Authorization': 'Bearer ' + TOKEN } })
+    .then(r => {
+      if (r.status === 401) return logout();
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.blob();
+    })
+    .then(blob => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = IMP_KIND[kind] + '_模板.xlsx';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    })
+    .catch(() => toast('模板下载失败', 'error'));
+}
+
+async function saveKnowledge(type) {
+  const ta = document.getElementById(type === 'profile' ? 'txt_profile' : (type === 'p_knowledge' ? 'txt_p_knowledge' : 'txt_policy'));
+  const content = (ta.value || '').trim();
+  if (!content) return toast('请先填写内容', 'error');
+  const tags = type === 'profile' ? ['enterprise_profile'] : (type === 'p_knowledge' ? ['company_profile'] : ['pricing_policy']);
+  try {
+    const res = await fetch(API + '/v1/' + SYS + '/knowledge', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content, source: '页面手动录入', tags }),
+    });
+    if (res.status === 401) return logout();
+    const r = await res.json();
+    if (res.ok && r.ok) { toast('已保存，谈判/报价时自动生效'); ta.value = ''; }
+    else toast(r.detail || '保存失败', 'error');
+  } catch (e) {
+    toast('保存失败: ' + esc(e.message), 'error');
+  }
+}
+</script>
+</body>
+</html>

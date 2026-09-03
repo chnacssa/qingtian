@@ -1,0 +1,75 @@
+{
+  "name": "csv_analyzer",
+  "display_name": "CSV 分析器",
+  "version": "1.0.0",
+  "description": "对 CSV 数据进行清洗、统计分析、异常检测、可视化建议。输出数据概况、清洗建议、分析洞察和图表推荐。",
+  "category": "tool",
+  "tags": [
+    "csv",
+    "data",
+    "analysis",
+    "statistics",
+    "productivity"
+  ],
+  "author": {
+    "type": "community",
+    "name": "ClawHub 社区 / ACSSA 适配",
+    "contact": "dev@qingtian.dev",
+    "website": "https://acssa.cn"
+  },
+  "compliance": {
+    "data_handling": "local",
+    "gdpr": false,
+    "audit_log": true
+  },
+  "copyright": {
+    "declaration": "源自 ClawHub 社区，MIT 协议。© 2026 ACSSA团队适配。",
+    "license": "MIT"
+  },
+  "license_info": {
+    "type": "free"
+  },
+  "entry": {
+    "class": "CsvAnalyzerSkill",
+    "file": "csv_analyzer.py"
+  },
+  "permissions": [
+    "llm"
+  ],
+  "lifecycle": "on_demand",
+  "resources": {
+    "cpu": "low",
+    "memory_mb": 128,
+    "api_calls_per_minute": 30,
+    "max_concurrent_requests": 5
+  },
+  "network": {
+    "outbound": {
+      "allowed": false,
+      "allowed_domains": []
+    },
+    "inbound": {
+      "port_required": false
+    }
+  },
+  "dependencies": {
+    "qingtian": ">=2.0.0",
+    "skills": {}
+  },
+  "health_check": {
+    "interval_seconds": 30,
+    "timeout_seconds": 5
+  },
+  "commands": [
+    {
+      "word": "csv",
+      "action": "execute",
+      "description": "CSV 数据分析",
+      "examples": [
+        "!!csv!! 分析这份销售数据",
+        "!!csv!! 帮我清洗这个CSV文件"
+      ]
+    }
+  ],
+  "certificate": "eddb8c15ad2b08b0e08d6801b9b1b39821c15328b2163a1c20c9b7692ce7e123d0912dde0b37dca5d38a58a11291aaa0517659cb48c2fba987b22224d2f0df04"
+}

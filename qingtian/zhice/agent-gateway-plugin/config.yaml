@@ -1,0 +1,54 @@
+# 执策 Gateway Plugin 配置
+# 消息入口拦截：收到指令后自动注册执策 Task
+
+zhiceEndpoint: "http://127.0.0.1:1996/v1/zhice"
+apiToken: ""
+
+# 内部通道令牌：网关 A2 保护端点（/v1/huanyu/messages 发消息等）凭 loopback+此头豁免。
+# 必须与网关进程环境变量 QINGTIAN_INTERNAL_IPC_TOKEN 同值；留空则插件回退读该环境变量。
+internalToken: ""
+
+# 多通道交付直发（波哥 2026-08-08 19:30）：飞书 OpenAPI 发引导消息，绕开 OpenClaw ctx.reply 发不出问题
+# 凭证来自 /root/.openclaw/openclaw.json channels.feishu.accounts.<bot-id>（采购服 bidding 对应 bot-bidding-2）
+# 也可用环境变量 FEISHU_APP_ID / FEISHU_APP_SECRET 兜底；留空 = 飞书直发关闭，走 ctx.reply 兜底
+feishuAppId: ""
+feishuAppSecret: ""
+
+# 秘书模式：probe探测后直接路由到对应Skill，绕过LLM分解
+secretaryEnabled: true
+secretaryEndpoint: "http://127.0.0.1:1996/api/v1/skills/work_secretary"
+
+# 不触发 Task 注册的消息模式（闲聊/问候，大小写不敏感）
+excludePatterns:
+  - "^(你好|hi|hello|在吗|在不在|早上好|晚上好|晚安|谢谢|再见|拜拜|ok|好的|嗯|哦|知道了|收到|明白|了解|懂了|okay|fine|got it)[\\s。.，,！!？?]*$"
+  - "^[?？]"
+  - "^(what|who|when|where|how|why)\\b"
+
+# 触发 Task 注册的最小消息长度（字符），短于此长度的视为闲聊
+minInstructionLength: 15
+
+# 启用强制执策的 Agent ID 列表
+# 空数组 = 对所有 Agent 启用
+enabledAgents: []
+# enabledAgents:
+#   - sys-eng
+#   - ops-agent
+#   - manager
+
+# agent 执行前拦截验证关键词（波哥 2026-08-20）：非空时命中该关键词的消息被
+# before_dispatch（{handled:true} 丢弃）或 before_agent_run（{decision:block} 阻断）拦下，
+# 用于自定义词验证拦截契约；置空 = 钩子仅按内置规则拦截。注：原 before_route_inbound_message
+# （#81061）小智 7.1-2 实测核心不认（unknown typed hook ignored），已弃用
+beforeInterceptTestKeyword: ""
+
+# 三条业务线拦截总开关（波哥 2026-08-20，主闸）：投标/采购/销售消息在 before_dispatch 拦截 →
+# 直接走 bus 管线（probe→skillExecute HTTP）真实生成，返回 {handled:true} → agent 不跑 → 不推文件；
+# 引导文本指引门户【我的标书】下载。其余消息（执策/审批/闲聊/其他 skill）放行 message_received 正常处理。
+# false = 关闭三线拦截（仅 dump，agent 照跑）；回滚时临时置 false 即可，无需改代码。
+interceptBusinessLines: true
+
+# 通道身份 → 规范 agent 名 归一映射（JSON 对象，一行）
+# 飞书消息 from.open_id 是通道身份，文件 owner 存的是 OpenClaw agent 名；
+# 不映射 → execute 下载 403。
+# ⚠️ 由账号绑定流程动态维护，禁止硬编码单个 open_id（用户身份不写进仓库）。
+identityAliases: {}

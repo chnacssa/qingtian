@@ -1,0 +1,74 @@
+{
+  "name": "meeting_summary",
+  "display_name": "会议纪要",
+  "version": "1.0.0",
+  "description": "将会议记录或讨论内容转为结构化会议纪要和待办事项表。含议程回顾、关键结论、责任人跟踪。",
+  "category": "tool",
+  "tags": [
+    "meeting",
+    "summary",
+    "minutes",
+    "productivity"
+  ],
+  "author": {
+    "type": "community",
+    "name": "ClawHub 社区 / ACSSA 适配",
+    "contact": "dev@qingtian.dev",
+    "website": "https://acssa.cn"
+  },
+  "compliance": {
+    "data_handling": "local",
+    "gdpr": false,
+    "audit_log": true
+  },
+  "copyright": {
+    "declaration": "源自 ClawHub 社区，MIT 协议。© 2026 ACSSA团队适配。",
+    "license": "MIT"
+  },
+  "license_info": {
+    "type": "free"
+  },
+  "entry": {
+    "class": "MeetingSummarySkill",
+    "file": "meeting_summary.py"
+  },
+  "permissions": [
+    "llm"
+  ],
+  "lifecycle": "on_demand",
+  "resources": {
+    "cpu": "low",
+    "memory_mb": 128,
+    "api_calls_per_minute": 30,
+    "max_concurrent_requests": 5
+  },
+  "network": {
+    "outbound": {
+      "allowed": false,
+      "allowed_domains": []
+    },
+    "inbound": {
+      "port_required": false
+    }
+  },
+  "dependencies": {
+    "qingtian": ">=2.0.0",
+    "skills": {}
+  },
+  "health_check": {
+    "interval_seconds": 30,
+    "timeout_seconds": 5
+  },
+  "commands": [
+    {
+      "word": "summary",
+      "action": "execute",
+      "description": "会议纪要生成",
+      "examples": [
+        "!!summary!! 记录今天的产品评审会议",
+        "!!summary!! 总结这段讨论内容"
+      ]
+    }
+  ],
+  "certificate": "539ceb043eda1d648aed60704d889f9ee8b3134e9711083415e7a432c8bb22caec276153803ee8ba3e6f0731d88b26b6bf1aa824f6a5eeefedeb5518c73f3d0e"
+}

@@ -1,0 +1,75 @@
+{
+  "name": "file_converter",
+  "display_name": "文件格式转换器",
+  "version": "1.0.0",
+  "description": "文档格式互转：Markdown、HTML、纯文本、CSV 之间的内容转换。保持内容完整性，附格式差异说明。",
+  "category": "tool",
+  "tags": [
+    "converter",
+    "markdown",
+    "html",
+    "text",
+    "productivity"
+  ],
+  "author": {
+    "type": "community",
+    "name": "ClawHub 社区 / ACSSA 适配",
+    "contact": "dev@qingtian.dev",
+    "website": "https://acssa.cn"
+  },
+  "compliance": {
+    "data_handling": "local",
+    "gdpr": false,
+    "audit_log": true
+  },
+  "copyright": {
+    "declaration": "源自 ClawHub 社区，MIT 协议。© 2026 ACSSA团队适配。",
+    "license": "MIT"
+  },
+  "license_info": {
+    "type": "free"
+  },
+  "entry": {
+    "class": "FileConverterSkill",
+    "file": "file_converter.py"
+  },
+  "permissions": [
+    "llm"
+  ],
+  "lifecycle": "on_demand",
+  "resources": {
+    "cpu": "low",
+    "memory_mb": 128,
+    "api_calls_per_minute": 30,
+    "max_concurrent_requests": 5
+  },
+  "network": {
+    "outbound": {
+      "allowed": false,
+      "allowed_domains": []
+    },
+    "inbound": {
+      "port_required": false
+    }
+  },
+  "dependencies": {
+    "qingtian": ">=2.0.0",
+    "skills": {}
+  },
+  "health_check": {
+    "interval_seconds": 30,
+    "timeout_seconds": 5
+  },
+  "commands": [
+    {
+      "word": "convert",
+      "action": "execute",
+      "description": "文档格式互转",
+      "examples": [
+        "!!convert!! 把这份Markdown转成HTML",
+        "!!convert!! 将CSV转为表格"
+      ]
+    }
+  ],
+  "certificate": "b753e846cbc701f35a2226b8c567293586f6786385e0baaa3bf1e89cbeca299d29039bb057c72b7996142340bb18e3039a0cfce5a6c7ac79a4bcfade73d1e301"
+}

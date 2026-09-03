@@ -1,0 +1,37 @@
+{
+  "id": "zhice-gateway",
+  "name": "执策任务网关",
+  "description": "消息入口拦截：收到指令后自动注册执策 Task，Agent LLM 看到的是 Task 引用而非原始消息",
+  "version": "3.1.0",
+  "kind": "gateway",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": true,
+    "properties": {
+      "zhiceEndpoint": {
+        "type": "string",
+        "description": "执策 API 地址",
+        "default": "http://127.0.0.1:1996/v1/zhice"
+      },
+      "apiToken": {
+        "type": "string",
+        "description": "ACSSA 底座 API Token"
+      },
+      "excludePatterns": {
+        "type": "array",
+        "description": "不触发 Task 注册的消息模式（闲聊/问候）",
+        "default": ["^(你好|hi|hello|在吗|在不在|早上好|晚上好|晚安|谢谢|再见|拜拜|ok|好的|嗯|哦|知道了)[\\s。.，,！!？?]*$"]
+      },
+      "minInstructionLength": {
+        "type": "integer",
+        "description": "触发 Task 注册的最小消息长度（字符）",
+        "default": 15
+      },
+      "enabledAgents": {
+        "type": "array",
+        "description": "启用强制执策的 Agent ID 列表，空数组=全部",
+        "default": []
+      }
+    }
+  }
+}

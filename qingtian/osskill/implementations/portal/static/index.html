@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>擎天门户 — 统一登录</title>
+<style>
+:root {
+  --bg: #f5f7fa; --card: #fff; --text: #1a1a2e; --sub: #6b7280;
+  --primary: #4f46e5; --primary-h: #4338ca; --green: #10b981; --red: #ef4444;
+  --border: #e5e7eb; --radius: 8px; --shadow: 0 1px 3px rgba(0,0,0,.08);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; align-items:center; justify-content:center; }
+.card { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:32px; width:100%; max-width:400px; }
+.logo { text-align:center; margin-bottom:8px; }
+.logo span { font-size:36px; font-weight:700; color:var(--primary); }
+.card h2 { text-align:center; margin-bottom:4px; font-size:18px; }
+.card .sub { text-align:center; color:var(--sub); font-size:12px; margin-bottom:24px; }
+.form-row { margin-bottom:14px; }
+.form-row input { width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:6px; font-size:14px; outline:none; }
+.form-row input:focus { border-color:var(--primary); box-shadow:0 0 0 2px rgba(79,70,229,.15); }
+.btn { width:100%; padding:11px 20px; border:none; border-radius:6px; font-size:14px; cursor:pointer; font-weight:500; transition:all .15s; }
+.btn-primary { background:var(--primary); color:#fff; }
+.btn-primary:hover { background:var(--primary-h); }
+.btn:disabled { opacity:.5; cursor:not-allowed; }
+.hint { text-align:center; margin-top:16px; font-size:12px; color:var(--sub); }
+.toast { position:fixed; top:16px; right:16px; padding:12px 20px; border-radius:var(--radius); color:#fff; font-size:13px; z-index:999; animation:slideIn .3s ease; max-width:360px; }
+.toast.error { background:var(--red); }
+.toast.success { background:var(--green); }
+@keyframes slideIn { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
+.systems { display:flex; justify-content:center; gap:8px; margin-top:20px; font-size:11px; color:var(--sub); flex-wrap:wrap; }
+.systems span { padding:4px 10px; border:1px solid var(--border); border-radius:20px; background:var(--bg); }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="logo"><span>⚡ 擎天</span></div>
+  <h2>统一门户登录</h2>
+  <p class="sub">投标 / 采购 / 销售 一账号通行</p>
+  <div class="form-row"><input type="text" id="loginUser" placeholder="用户名（agent_id）" autocomplete="username"></div>
+  <div class="form-row"><input type="password" id="loginPass" placeholder="密码" autocomplete="current-password"></div>
+  <button class="btn btn-primary" id="loginBtn" onclick="doLogin()">登 录</button>
+  <div class="hint">登录后自动进入对应系统页面</div>
+  <div class="systems"><span>🏗 投标</span><span>📦 采购</span><span>💰 销售</span></div>
+</div>
+
+<script>
+const API = '';
+const APP_LABEL = { bidding: '投标系统', procurement: '采购系统', sales: '销售系统', admin: '管理门户' };
+
+function toast(msg, type = 'success') {
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+function get(key) { return localStorage.getItem(key) || ''; }
+
+// 已登录 → 直接跳对应系统
+(function init() {
+  const app = get('acssa_app');
+  const tok = get('acssa_token') || get('bidding_token');
+  if (tok && app) {
+    location.replace('/v1/' + app + '/');
+  }
+  document.getElementById('loginPass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  document.getElementById('loginUser').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+})();
+
+async function doLogin() {
+  const user = document.getElementById('loginUser').value.trim();
+  const pass = document.getElementById('loginPass').value.trim();
+  if (!user || !pass) return toast('请输入用户名和密码', 'error');
+
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true; btn.textContent = '登录中...';
+  try {
+    const r = await fetch(API + '/v1/auth/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: user, password: pass }),
+    });
+    if (!r.ok) {
+      let msg = '登录失败 (' + r.status + ')';
+      try { const err = await r.json(); msg = err.detail || err.message || msg; } catch (_) {}
+      throw new Error(msg);
+    }
+    const d = await r.json();
+    const token = d.token || d.access_token;
+    const app = d.app || 'bidding';
+
+    // 统一命名空间：门户 + 各系统页面共享
+    localStorage.setItem('acssa_token', token);
+    localStorage.setItem('acssa_ent', d.enterprise_id || user);
+    localStorage.setItem('acssa_user', d.agent_id || user);
+    localStorage.setItem('acssa_role', d.role || '');
+    localStorage.setItem('acssa_app', app);
+    // 兼容既有投标前端（它只读 bidding_*）
+    if (app === 'bidding') {
+      localStorage.setItem('bidding_token', token);
+      localStorage.setItem('bidding_ent', d.enterprise_id || user);
+      localStorage.setItem('bidding_user', d.agent_id || user);
+      localStorage.setItem('bidding_role', d.role || '');
+    }
+
+    toast('登录成功，正在进入' + (APP_LABEL[app] || app) + '…');
+    setTimeout(() => { location.href = '/v1/' + app + '/'; }, 400);
+  } catch (e) {
+    toast(e.message, 'error');
+    btn.disabled = false; btn.textContent = '登 录';
+  }
+}
+</script>
+</body>
+</html>

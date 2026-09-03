@@ -1,0 +1,22 @@
+{
+  "skill_id": "requirement-clairifier",
+  "skill_type": "python",
+  "enabled": true,
+  "description": "需求澄清 Skill - 当用户需求不明确时，主动向用户询问关键信息",
+  "runtime": "python3",
+  "script_path": "/opt/openclaw/{server_type}/skills/requirement-clairifier/clairifier.py",
+  "version": "1.0.0",
+  "config_path": "/opt/openclaw/{server_type}/skills/requirement-clairifier/config.json",
+  "dependencies": [],
+  "required_fields": {
+    "procurement": ["product_type", "quantity", "delivery_date", "budget"],
+    "sales": ["product_name", "quantity", "target_price"],
+    "management": ["task_type", "scope", "deadline"]
+  },
+  "clarification": {
+    "max_questions_per_round": 5,
+    "timeout_hours": 24,
+    "max_reminders": 3,
+    "auto_escalate_on_timeout": true
+  }
+}

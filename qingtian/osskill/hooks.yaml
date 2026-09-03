@@ -1,0 +1,90 @@
+# OpenClaw Agent Hooks — ACSSA 底座自动集成
+#
+# 放到 Agent 目录下（如 ~/.openclaw/workspace/agents/<name>/hooks.yaml）
+# OpenClaw 会在 Agent 生命周期节点自动执行这些命令。
+#
+# 自动覆盖的时机：
+#   on_start  → session-start + recall（恢复上下文 + 加载偏好）
+#   on_end    → session-end（写入总结 + 更新状态）
+#
+# Agent 主动调用的时机（需在 CLAUDE.md 中声明）：
+#   learn     → 关键决策后提交经验
+#   remember  → 学到通用规则/流程时写入
+#   pitfall   → 遇到报错/意外时上报
+
+# 部署说明：将此文件复制到 Agent 目录
+#   cp qingtian/skills/hooks.yaml ~/.openclaw/workspace/agents/<name>/hooks.yaml
+# OpenClaw 执行钩子时 CWD = Agent 目录，所以可直接 source ./qingtian.env
+
+hooks:
+  on_start:
+    - name: qingtian-health
+      description: "底座连通性检查"
+      command: |
+        set -e
+        source ./qingtian.env 2>/dev/null || true
+        python3 /root/.openclaw/workspace/skills/qingtian/qingtian.py health
+
+    - name: qingtian-register
+      description: "幂等注册到寰宇目录"
+      command: |
+        set -e
+        source ./qingtian.env 2>/dev/null || true
+        python3 /root/.openclaw/workspace/skills/qingtian/qingtian.py register
+
+    - name: qingtian-session-start
+      description: "启动永恒会话：浮现相关记忆 + 加载画像 + 恢复工作状态"
+      command: |
+        set -e
+        source ./qingtian.env 2>/dev/null || true
+        python3 /root/.openclaw/workspace/skills/qingtian/qingtian.py session-start "Agent 启动，准备执行任务" > /tmp/qingtian_startup.json
+
+        # 打印关键上下文供 Agent 首轮对话使用
+        python3 -c "
+        import json
+        try:
+            with open('/tmp/qingtian_startup.json') as f:
+                d = json.load(f)
+        except: d = {}
+
+        ctx = d.get('context_results', [])
+        if ctx:
+            print('=== 相关历史记忆 ===')
+            for m in ctx[:3]:
+                print(f\"  [{m.get('score',0):.2f}] {m.get('content','')[:120]}\")
+
+        profile = d.get('profile', {}) or {}
+        learned = profile.get('learned', [])
+        if learned:
+            print('=== 用户偏好 ===')
+            for l in learned[:5]:
+                print(f\"  • {l.get('preference','')} (confidence={l.get('confidence',0)})\")
+
+        state = profile.get('state', {}) or {}
+        if state:
+            print('=== 上次工作状态 ===')
+            for k,v in state.items():
+                print(f\"  {k}: {v}\")
+
+        traj = d.get('trajectory', {}) or {}
+        actions = traj.get('actions', [])
+        if actions:
+            print(f'=== 今日已完成 {len(actions)} 项 ===')
+            for a in actions[-5:]:
+                print(f\"  [{a.get('time','')}] {a.get('action','')}: {a.get('detail','')[:80]}\")
+        "
+
+  on_end:
+    - name: qingtian-session-end
+      description: "结束永恒会话：写入总结 + 更新状态"
+      command: |
+        set -e
+        source ./qingtian.env 2>/dev/null || true
+
+        if [ -f /tmp/qingtian_session_summary.txt ]; then
+          python3 /root/.openclaw/workspace/skills/qingtian/qingtian.py session-end --file /tmp/qingtian_session_summary.txt
+        else
+          python3 /root/.openclaw/workspace/skills/qingtian/qingtian.py session-end "Agent 会话正常结束"
+        fi
+
+        rm -f /tmp/qingtian_session_summary.txt

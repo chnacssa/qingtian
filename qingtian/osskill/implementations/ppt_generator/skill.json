@@ -1,0 +1,74 @@
+{
+  "name": "ppt_generator",
+  "display_name": "PPT 生成器",
+  "version": "1.0.0",
+  "description": "从大纲或要点生成演示文稿内容、幻灯片结构、演讲备注。每页含标题、要点、备注和版式建议。",
+  "category": "tool",
+  "tags": [
+    "ppt",
+    "presentation",
+    "slides",
+    "productivity"
+  ],
+  "author": {
+    "type": "community",
+    "name": "ClawHub 社区 / ACSSA 适配",
+    "contact": "dev@qingtian.dev",
+    "website": "https://acssa.cn"
+  },
+  "compliance": {
+    "data_handling": "local",
+    "gdpr": false,
+    "audit_log": true
+  },
+  "copyright": {
+    "declaration": "源自 ClawHub 社区，MIT 协议。© 2026 ACSSA团队适配。",
+    "license": "MIT"
+  },
+  "license_info": {
+    "type": "free"
+  },
+  "entry": {
+    "class": "PptGeneratorSkill",
+    "file": "ppt_generator.py"
+  },
+  "permissions": [
+    "llm"
+  ],
+  "lifecycle": "on_demand",
+  "resources": {
+    "cpu": "low",
+    "memory_mb": 128,
+    "api_calls_per_minute": 30,
+    "max_concurrent_requests": 5
+  },
+  "network": {
+    "outbound": {
+      "allowed": false,
+      "allowed_domains": []
+    },
+    "inbound": {
+      "port_required": false
+    }
+  },
+  "dependencies": {
+    "qingtian": ">=2.0.0",
+    "skills": {}
+  },
+  "health_check": {
+    "interval_seconds": 30,
+    "timeout_seconds": 5
+  },
+  "commands": [
+    {
+      "word": "ppt",
+      "action": "execute",
+      "description": "PPT 演示文稿生成",
+      "examples": [
+        "!!ppt!! 为项目评审会做一份PPT",
+        "!!ppt!! 把这份大纲转成幻灯片"
+      ]
+    }
+  ],
+  "certificate": "b8ad8c0ce16bdac56558e1d116494c1ff3ffeda4d99d955e28bae5e2f32f2b1a7a2d606520f4f2ca4043d2d60ce0bc0cdbcc6c8f9607277e5905b0259ec1230c"
+}

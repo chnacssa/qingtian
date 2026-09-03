@@ -1,0 +1,26 @@
+# 镇岳审批通知 — 用户→通道映射表
+# 文件: /opt/qingtian/zhenyue/configs/approval_recipients.yaml
+# 不被 git pull 覆盖，每台服务器独立维护
+#
+# 格式:
+#   users:
+#     用户标识(caller_id):
+#       channels:
+#         - type: feishu | wechat
+#           target: 接收方标识
+#           enabled: true
+
+users:
+  # 波哥（默认审批人）
+  boge:
+    channels:
+      - type: feishu
+        target: "ou_default_admin_open_id"
+        enabled: true
+
+  # 示例：通过微信接收
+  # someuser:
+  #   channels:
+  #     - type: wechat
+  #       target: "wx_openid_xxxxx"
+  #       enabled: true

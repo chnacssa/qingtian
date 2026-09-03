@@ -1,0 +1,75 @@
+{
+  "name": "word_generator",
+  "display_name": "Word 文档生成器",
+  "version": "1.0.0",
+  "description": "根据大纲或要点生成 Word 文档、合同、标书、函件。输出结构化 Markdown 内容，适用于正式商务文档。",
+  "category": "tool",
+  "tags": [
+    "word",
+    "document",
+    "contract",
+    "letter",
+    "productivity"
+  ],
+  "author": {
+    "type": "community",
+    "name": "ClawHub 社区 / ACSSA 适配",
+    "contact": "dev@qingtian.dev",
+    "website": "https://acssa.cn"
+  },
+  "compliance": {
+    "data_handling": "local",
+    "gdpr": false,
+    "audit_log": true
+  },
+  "copyright": {
+    "declaration": "源自 ClawHub 社区，MIT 协议。© 2026 ACSSA团队适配。",
+    "license": "MIT"
+  },
+  "license_info": {
+    "type": "free"
+  },
+  "entry": {
+    "class": "WordGeneratorSkill",
+    "file": "word_generator.py"
+  },
+  "permissions": [
+    "llm"
+  ],
+  "lifecycle": "on_demand",
+  "resources": {
+    "cpu": "low",
+    "memory_mb": 128,
+    "api_calls_per_minute": 30,
+    "max_concurrent_requests": 5
+  },
+  "network": {
+    "outbound": {
+      "allowed": false,
+      "allowed_domains": []
+    },
+    "inbound": {
+      "port_required": false
+    }
+  },
+  "dependencies": {
+    "qingtian": ">=2.0.0",
+    "skills": {}
+  },
+  "health_check": {
+    "interval_seconds": 30,
+    "timeout_seconds": 5
+  },
+  "commands": [
+    {
+      "word": "word",
+      "action": "execute",
+      "description": "Word 文档生成",
+      "examples": [
+        "!!word!! 起草一份合同",
+        "!!word!! 生成项目标书"
+      ]
+    }
+  ],
+  "certificate": "f0e24c27bf03a2d346cddeeb786a449ff265c228e00c613bdfd83bba56c87daaff826a6b1c95b568aec438de80e1c0dac3275b86797b136c7ddbab95af0b9608"
+}

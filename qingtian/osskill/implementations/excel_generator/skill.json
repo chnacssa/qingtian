@@ -1,0 +1,74 @@
+{
+  "name": "excel_generator",
+  "display_name": "Excel 生成器",
+  "version": "1.0.0",
+  "description": "根据数据描述生成 Excel 报表、数据透视表模板、图表。输出 Markdown 表格或 CSV 格式，附公式说明。",
+  "category": "tool",
+  "tags": [
+    "excel",
+    "spreadsheet",
+    "report",
+    "productivity"
+  ],
+  "author": {
+    "type": "community",
+    "name": "ClawHub 社区 / ACSSA 适配",
+    "contact": "dev@qingtian.dev",
+    "website": "https://acssa.cn"
+  },
+  "compliance": {
+    "data_handling": "local",
+    "gdpr": false,
+    "audit_log": true
+  },
+  "copyright": {
+    "declaration": "源自 ClawHub 社区，MIT 协议。© 2026 ACSSA团队适配。",
+    "license": "MIT"
+  },
+  "license_info": {
+    "type": "free"
+  },
+  "entry": {
+    "class": "ExcelGeneratorSkill",
+    "file": "excel_generator.py"
+  },
+  "permissions": [
+    "llm"
+  ],
+  "lifecycle": "on_demand",
+  "resources": {
+    "cpu": "low",
+    "memory_mb": 128,
+    "api_calls_per_minute": 30,
+    "max_concurrent_requests": 5
+  },
+  "network": {
+    "outbound": {
+      "allowed": false,
+      "allowed_domains": []
+    },
+    "inbound": {
+      "port_required": false
+    }
+  },
+  "dependencies": {
+    "qingtian": ">=2.0.0",
+    "skills": {}
+  },
+  "health_check": {
+    "interval_seconds": 30,
+    "timeout_seconds": 5
+  },
+  "commands": [
+    {
+      "word": "excel",
+      "action": "execute",
+      "description": "Excel 报表生成",
+      "examples": [
+        "!!excel!! 生成季度销售报表",
+        "!!excel!! 创建一个预算表模板"
+      ]
+    }
+  ],
+  "certificate": "6d924868b85d705875bbd062900f40f2a57045f6bf5bc5c998371d7e4e08a0ddcaf02e7aeda0880075a220c9b60d467b3bf5631369c4482d460052a2fa912700"
+}

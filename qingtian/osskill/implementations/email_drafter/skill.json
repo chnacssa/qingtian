@@ -1,0 +1,74 @@
+{
+  "name": "email_drafter",
+  "display_name": "邮件起草器",
+  "version": "1.0.0",
+  "description": "根据要点或关键词生成正式商务邮件。支持正式/半正式/内部沟通三种语气，多方案备选。",
+  "category": "tool",
+  "tags": [
+    "email",
+    "draft",
+    "communication",
+    "productivity"
+  ],
+  "author": {
+    "type": "community",
+    "name": "ClawHub 社区 / ACSSA 适配",
+    "contact": "dev@qingtian.dev",
+    "website": "https://acssa.cn"
+  },
+  "compliance": {
+    "data_handling": "local",
+    "gdpr": false,
+    "audit_log": true
+  },
+  "copyright": {
+    "declaration": "源自 ClawHub 社区，MIT 协议。© 2026 ACSSA团队适配。",
+    "license": "MIT"
+  },
+  "license_info": {
+    "type": "free"
+  },
+  "entry": {
+    "class": "EmailDrafterSkill",
+    "file": "email_drafter.py"
+  },
+  "permissions": [
+    "llm"
+  ],
+  "lifecycle": "on_demand",
+  "resources": {
+    "cpu": "low",
+    "memory_mb": 128,
+    "api_calls_per_minute": 30,
+    "max_concurrent_requests": 5
+  },
+  "network": {
+    "outbound": {
+      "allowed": false,
+      "allowed_domains": []
+    },
+    "inbound": {
+      "port_required": false
+    }
+  },
+  "dependencies": {
+    "qingtian": ">=2.0.0",
+    "skills": {}
+  },
+  "health_check": {
+    "interval_seconds": 30,
+    "timeout_seconds": 5
+  },
+  "commands": [
+    {
+      "word": "email",
+      "action": "execute",
+      "description": "商务邮件起草",
+      "examples": [
+        "!!email!! 给客户写一封报价邮件",
+        "!!email!! 起草请假申请"
+      ]
+    }
+  ],
+  "certificate": "0f6edc0d7fd3c1e0055762e9680a47fabc20fa4561fb07a775010469a2f974acd15093f01470430b48cc278b99a91533803d9a2a49801177cacf9678614d180e"
+}

@@ -1,0 +1,28 @@
+[Unit]
+Description=擎天底座 (Qingtian Base OS)
+After=network-online.target postgresql.service redis.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=qingtian
+Group=qingtian
+WorkingDirectory=/opt/qingtian
+Environment=QINGTIAN_CONFIG=/opt/qingtian/config.yaml
+EnvironmentFile=-/opt/qingtian/.env
+ExecStart=/usr/bin/python3 main.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=qingtian
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/opt/qingtian /var/log/qingtian /tmp
+ReadOnlyPaths=/etc/passwd /etc/group
+
+[Install]
+WantedBy=multi-user.target

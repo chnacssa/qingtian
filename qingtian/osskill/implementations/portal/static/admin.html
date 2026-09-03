@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理门户 — 擎天</title>
+<style>
+:root {
+  --bg: #f5f7fa; --card: #fff; --text: #1a1a2e; --sub: #6b7280;
+  --primary: #4f46e5; --primary-h: #4338ca; --green: #10b981; --red: #ef4444;
+  --amber: #d97706; --border: #e5e7eb; --radius: 8px; --shadow: 0 1px 3px rgba(0,0,0,.08);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+.topbar { background:var(--card); border-bottom:1px solid var(--border); padding:12px 24px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+.topbar h1 { font-size:18px; font-weight:600; color:var(--primary); }
+.topbar .user { font-size:12px; color:var(--sub); }
+.topbar .user a { color:var(--red); font-size:12px; margin-left:8px; cursor:pointer; text-decoration:none; }
+.container { max-width:960px; margin:0 auto; padding:24px; }
+.card { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:24px; margin-bottom:16px; }
+.card h2 { font-size:16px; margin-bottom:16px; color:var(--text); font-weight:600; }
+.grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.sys-card { border:1px solid var(--border); border-radius:var(--radius); padding:20px; text-align:center; cursor:pointer; transition:all .15s; background:var(--card); }
+.sys-card:hover { border-color:var(--primary); box-shadow:var(--shadow); transform:translateY(-1px); }
+.sys-card .icon { font-size:30px; margin-bottom:8px; }
+.sys-card .name { font-size:15px; font-weight:600; margin-bottom:4px; }
+.sys-card .desc { font-size:12px; color:var(--sub); }
+.form-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; align-items:center; }
+.form-row input,.form-row select { padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-size:13px; flex:1; min-width:140px; }
+.btn { padding:8px 20px; border:none; border-radius:6px; font-size:14px; cursor:pointer; font-weight:500; transition:all .15s; }
+.btn-primary { background:var(--primary); color:#fff; }
+.btn-primary:hover { background:var(--primary-h); }
+.btn-sm { padding:4px 12px; font-size:12px; border:1px solid var(--border); background:var(--card); border-radius:6px; cursor:pointer; }
+.btn-sm:hover { border-color:var(--primary); color:var(--primary); }
+.btn-sm.danger { color:var(--red); }
+.btn-sm.danger:hover { border-color:var(--red); }
+.table-wrap { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th { text-align:left; padding:10px 12px; background:var(--bg); color:var(--sub); font-weight:500; border-bottom:2px solid var(--border); }
+td { padding:10px 12px; border-bottom:1px solid var(--border); }
+.badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; }
+.badge.active { background:#d1fae5; color:#065f46; }
+.badge.inactive { background:#fee2e2; color:#991b1b; }
+.type-tag { color:var(--primary); font-size:12px; }
+.empty { color:var(--sub); text-align:center; padding:24px; }
+.hidden { display:none !important; }
+.bell { position:relative; cursor:pointer; font-size:18px; margin-right:20px; user-select:none; }
+.bell .badge-num { position:absolute; top:-6px; right:-14px; background:var(--red); color:#fff;
+  border-radius:9px; font-size:10px; line-height:1; padding:3px 5px; min-width:14px; text-align:center; font-weight:600; }
+.msg { border:1px solid var(--border); border-radius:var(--radius); padding:12px 14px; margin-bottom:10px; background:var(--card); }
+.msg.unread { border-left:3px solid var(--primary); }
+.msg .msg-head { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px; }
+.msg .msg-title { font-weight:600; font-size:13px; flex:1; }
+.msg .msg-body { font-size:12px; color:var(--sub); margin-bottom:8px; white-space:pre-wrap; word-break:break-all; }
+.msg .msg-meta { font-size:11px; color:var(--sub); display:flex; align-items:center; gap:8px; }
+.lvl { display:inline-block; padding:1px 7px; border-radius:9px; font-size:11px; font-weight:500; }
+.lvl.critical { background:#fee2e2; color:#991b1b; }
+.lvl.warning { background:#fef3c7; color:#92400e; }
+.lvl.info { background:#e0e7ff; color:#3730a3; }
+.pager { display:flex; align-items:center; justify-content:center; gap:12px; margin-top:8px; font-size:12px; color:var(--sub); }
+.health { display:flex; gap:16px; align-items:center; }
+.health .dot { width:10px; height:10px; border-radius:50%; background:var(--green); }
+.health .dot.down { background:var(--red); }
+.health .meta { font-size:12px; color:var(--sub); }
+.toast { position:fixed; top:16px; right:16px; padding:12px 20px; border-radius:var(--radius); color:#fff; font-size:13px; z-index:999; animation:slideIn .3s ease; max-width:360px; }
+.toast.error { background:var(--red); }
+.toast.success { background:var(--green); }
+@keyframes slideIn { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <h1>🛡 管理门户</h1>
+  <div style="display:flex; align-items:center;">
+    <div class="bell" id="bell" onclick="goMessages()" title="消息中心">🔔<span class="badge-num hidden" id="bellBadge"></span></div>
+    <div class="user" id="userInfo"></div>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="card">
+    <h2>🏢 系统入口</h2>
+    <div class="grid">
+      <div class="sys-card" onclick="goSys('bidding')">
+        <div class="icon">🤖</div>
+        <div class="name">投标系统</div>
+        <div class="desc">标书生成 / 评分 / 预训练 / 素材</div>
+      </div>
+      <div class="sys-card" onclick="goSys('procurement')">
+        <div class="icon">📦</div>
+        <div class="name">采购系统</div>
+        <div class="desc">采购文件工作台</div>
+      </div>
+      <div class="sys-card" onclick="goSys('sales')">
+        <div class="icon">💰</div>
+        <div class="name">销售系统</div>
+        <div class="desc">销售文件工作台</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="msgCard">
+    <h2>📬 消息中心 <span style="font-size:12px;color:var(--sub);font-weight:400" id="msgUnreadHint"></span></h2>
+    <div class="form-row">
+      <select id="msgLevel" onchange="msgPage=1;loadMessages()">
+        <option value="">全部级别</option>
+        <option value="critical">紧急</option>
+        <option value="warning">警告</option>
+        <option value="info">普通</option>
+      </select>
+      <label style="font-size:12px;color:var(--sub);display:flex;align-items:center;gap:4px;cursor:pointer">
+        <input type="checkbox" id="msgUnreadOnly" onchange="msgPage=1;loadMessages()"> 仅未读
+      </label>
+      <button class="btn-sm" onclick="msgPage=1;loadMessages()">刷新</button>
+      <button class="btn-sm" onclick="markAllRead()">全部已读</button>
+    </div>
+    <div id="msgList"></div>
+    <div class="empty hidden" id="msgEmpty">暂无消息</div>
+    <div class="empty hidden" id="msgDisabled">消息中心不可用（投标模块未启用）</div>
+    <div class="pager hidden" id="msgPager">
+      <button class="btn-sm" id="msgPrev" onclick="msgPage--;loadMessages()">上一页</button>
+      <span id="msgPageInfo"></span>
+      <button class="btn-sm" id="msgNext" onclick="msgPage++;loadMessages()">下一页</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>👥 用户管理</h2>
+    <div class="form-row">
+      <input type="text" id="uName" placeholder="登录名（如 bidding-feishu-2）">
+      <input type="text" id="uReal" placeholder="姓名">
+      <input type="password" id="uPass" placeholder="初始密码（≥8位含字母数字）">
+      <select id="uType">
+        <option value="bidding">投标员</option>
+        <option value="procurement">采购员</option>
+        <option value="sales">销售员</option>
+      </select>
+      <button class="btn btn-primary" id="createBtn" onclick="createUser()">+ 创建账号</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>登录名</th><th>姓名</th><th>类型</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead>
+        <tbody id="userTable"></tbody>
+      </table>
+    </div>
+    <div class="empty hidden" id="userEmpty">暂无账号</div>
+    <div class="empty hidden" id="userDisabled">投标模块未启用，用户管理不可用</div>
+  </div>
+
+  <div class="card">
+    <h2>🏷 部门映射</h2>
+    <p style="font-size:12px;color:var(--sub);margin-bottom:12px">同一部门 agent 配相同 企业ID+部门ID 即可共享预训练数据；部门间自动隔离。配置即时生效，无需重启。企业ID/部门ID 限 1-64 位字母/数字/._:-（不含冒号）。</p>
+    <div class="form-row">
+      <input type="text" id="dAgent" placeholder="登录名（agent_id，如 bidding-feishu-2）">
+      <input type="text" id="dEnt" placeholder="企业ID（如 ent1）">
+      <input type="text" id="dDept" placeholder="部门ID（如 bid）">
+      <button class="btn btn-primary" id="deptBtn" onclick="upsertDepartment()">配置映射</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>登录名</th><th>部门键（企业:部门）</th><th>配置时间</th><th>操作</th></tr></thead>
+        <tbody id="deptTable"></tbody>
+      </table>
+    </div>
+    <div class="empty hidden" id="deptEmpty">暂无部门映射</div>
+    <div class="empty hidden" id="deptDisabled">投标模块未启用，部门映射不可用</div>
+  </div>
+
+  <div class="card">
+    <h2>🖥 系统状态</h2>
+    <div class="health" id="healthBox">
+      <span class="dot" id="healthDot"></span>
+      <span id="healthText">检测中...</span>
+      <span class="meta" id="healthMeta"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '';
+let TOKEN = '', USER = '';
+
+function get(key) { return localStorage.getItem(key) || ''; }
+function set(key, v) { localStorage.setItem(key, v); }
+function del(key) { localStorage.removeItem(key); }
+
+function toast(msg, type = 'success') {
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+// 启动：仅 admin 可进，否则弹回门户
+(function init() {
+  TOKEN = get('acssa_token') || get('bidding_token');
+  USER = get('acssa_user') || get('bidding_user') || '';
+  const role = get('acssa_role') || get('bidding_role') || '';
+  if (!TOKEN) { location.replace('/portal'); return; }
+  if (role !== 'admin') { toast('无管理权限，即将返回门户', 'error'); setTimeout(() => location.replace('/portal'), 1200); return; }
+
+  const u = document.getElementById('userInfo');
+  u.textContent = (USER || 'admin') + ' | ';
+  const a = document.createElement('a');
+  a.textContent = '退出'; a.onclick = logout;
+  u.appendChild(a);
+
+  loadUsers();
+  loadDepartments();
+  loadMessages();
+  refreshBadge();
+  setInterval(refreshBadge, 60000);  // 角标每 60s 轮询
+  checkHealth();
+})();
+
+function logout() {
+  localStorage.removeItem('acssa_token'); localStorage.removeItem('acssa_ent');
+  localStorage.removeItem('acssa_user'); localStorage.removeItem('acssa_role'); localStorage.removeItem('acssa_app');
+  localStorage.removeItem('bidding_token'); localStorage.removeItem('bidding_ent');
+  localStorage.removeItem('bidding_user'); localStorage.removeItem('bidding_role');
+  location.replace('/portal');
+}
+
+// ── 消息中心（复用投标 /admin/messages 接口；admin_messages 由底座消息总线写入） ──
+
+let msgPage = 1, msgTotal = 0;
+const MSG_PAGE_SIZE = 10;
+const _LEVEL_LABEL = { critical: '紧急', warning: '警告', info: '普通' };
+const _SOURCE_LABEL = { work_secretary: '工作秘书', storage: '存储', security: '安全',
+  license: 'License', skill: 'Skill', system: '系统' };
+
+function goMessages() {
+  document.getElementById('msgCard').scrollIntoView({ behavior: 'smooth' });
+}
+
+async function refreshBadge() {
+  try {
+    const r = await fetch(API + '/v1/bidding/admin/messages/unread-count', {
+      headers: { 'Authorization': 'Bearer ' + TOKEN },
+    });
+    if (r.status === 401) { logout(); return; }
+    if (!r.ok) return;
+    const d = await r.json();
+    const n = d.unread_count || 0;
+    const b = document.getElementById('bellBadge');
+    b.classList.toggle('hidden', n === 0);
+    b.textContent = n > 99 ? '99+' : String(n);
+    const hint = document.getElementById('msgUnreadHint');
+    if (hint) hint.textContent = n > 0 ? ('（' + n + ' 条未读）') : '';
+  } catch (e) { /* 角标失败静默，不打扰 */ }
+}
+
+async function loadMessages() {
+  const level = document.getElementById('msgLevel').value;
+  const unreadOnly = document.getElementById('msgUnreadOnly').checked;
+  const qs = '?page=' + msgPage + '&page_size=' + MSG_PAGE_SIZE +
+    (level ? '&level=' + encodeURIComponent(level) : '') +
+    (unreadOnly ? '&unread_only=true' : '');
+  try {
+    const r = await fetch(API + '/v1/bidding/admin/messages' + qs, {
+      headers: { 'Authorization': 'Bearer ' + TOKEN },
+    });
+    if (r.status === 401) { logout(); return; }
+    if (r.status === 404 || r.status === 503) {
+      document.getElementById('msgDisabled').classList.remove('hidden');
+      return;
+    }
+    if (!r.ok) throw new Error('加载失败: ' + r.status);
+    const d = await r.json();
+    msgTotal = d.total || 0;
+    const items = d.messages || [];
+    const box = document.getElementById('msgList');
+    const empty = document.getElementById('msgEmpty');
+    empty.classList.toggle('hidden', items.length > 0);
+    box.innerHTML = items.map(m => {
+      const lvl = '<span class="lvl ' + esc(m.level) + '">' + (_LEVEL_LABEL[m.level] || esc(m.level)) + '</span>';
+      const src = '<span class="type-tag">' + (_SOURCE_LABEL[m.source] || esc(m.source)) + '</span>';
+      const folded = (m.count || 1) > 1 ? '<span class="badge inactive">×' + esc(m.count) + '</span>' : '';
+      const time = (m.created_at || '').replace('T', ' ').slice(0, 16);
+      return '<div class="msg' + (m.read ? '' : ' unread') + '" id="msg-' + esc(m.msg_id) + '">' +
+        '<div class="msg-head">' + lvl + src + folded +
+        '<span class="msg-title">' + esc(m.title) + '</span></div>' +
+        '<div class="msg-body">' + esc(m.body) + '</div>' +
+        '<div class="msg-meta"><span>' + esc(time) + '</span>' +
+        (m.read ? '' : '<button class="btn-sm" onclick="markRead(\'' + esc(m.msg_id) + '\')">标已读</button>') +
+        '<button class="btn-sm" onclick="archiveMsg(\'' + esc(m.msg_id) + '\')">归档</button>' +
+        '</div></div>';
+    }).join('');
+    // 分页
+    const pages = Math.max(1, Math.ceil(msgTotal / MSG_PAGE_SIZE));
+    const pager = document.getElementById('msgPager');
+    pager.classList.toggle('hidden', msgTotal <= MSG_PAGE_SIZE);
+    document.getElementById('msgPageInfo').textContent = msgPage + ' / ' + pages;
+    document.getElementById('msgPrev').disabled = msgPage <= 1;
+    document.getElementById('msgNext').disabled = msgPage >= pages;
+    refreshBadge();
+  } catch (e) {
+    toast('加载消息失败: ' + esc(e.message), 'error');
+  }
+}
+
+async function markRead(msgId) {
+  try {
+    const r = await fetch(API + '/v1/bidding/admin/messages/read', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN },
+      body: JSON.stringify({ msg_ids: [msgId] }),
+    });
+    if (!r.ok) throw new Error('操作失败: ' + r.status);
+    loadMessages();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function markAllRead() {
+  try {
+    const r = await fetch(API + '/v1/bidding/admin/messages/read', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN },
+      body: JSON.stringify({ msg_ids: [] }),
+    });
+    if (!r.ok) throw new Error('操作失败: ' + r.status);
+    toast('已全部标为已读', 'success');
+    loadMessages();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function archiveMsg(msgId) {
+  if (!confirm('确认归档该消息？归档后不再显示。')) return;
+  try {
+    const r = await fetch(API + '/v1/bidding/admin/messages/archive', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN },
+      body: JSON.stringify({ msg_ids: [msgId] }),
+    });
+    if (!r.ok) throw new Error('操作失败: ' + r.status);
+    loadMessages();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// 系统入口跳转：投标前端只读 bidding_*，需补写；采购/销售读 acssa_*
+function goSys(app) {
+  if (app === 'bidding') {
+    set('bidding_token', TOKEN);
+    set('bidding_ent', get('acssa_ent') || USER);
+    set('bidding_user', USER);
+    set('bidding_role', get('acssa_role') || 'admin');
+  }
+  location.href = '/v1/' + app + '/';
+}
+
+// ── 用户管理（复用投标 /admin/users 接口） ──
+
+let _creating = false;
+async function createUser() {
+  const username = document.getElementById('uName').value.trim();
+  const name = document.getElementById('uReal').value.trim();
+  const password = document.getElementById('uPass').value;
+  const account_type = document.getElementById('uType').value;
+  if (!username || !name || !password) return toast('请填写登录名、姓名、密码', 'error');
+  const btn = document.getElementById('createBtn');
+  if (_creating || btn.disabled) return;
+  _creating = true; btn.disabled = true; btn.textContent = '创建中...';
+  try {
+    const r = await fetch(API + '/v1/bidding/admin/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN },
+      body: JSON.stringify({ username, name, password, account_type }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.detail || '创建失败: ' + r.status);
+    toast(d.message || '账号已创建', 'success');
+    document.getElementById('uName').value = '';
+    document.getElementById('uReal').value = '';
+    document.getElementById('uPass').value = '';
+    loadUsers();
+  } catch (e) {
+    // 修复静默失败：fetch() 抛异常时 r 未定义（非 HTTP 状态），旧代码引用 r.status 再抛
+    // ReferenceError → 错误被吞、页面毫无反应。现在任何失败都必须有 toast 反馈。
+    const status = r ? r.status : 0;
+    if (status === 404) { document.getElementById('userDisabled').classList.remove('hidden'); toast('投标模块未启用', 'error'); }
+    else if (status === 0) { toast('创建失败：请求未送达（网络/网关异常），请查看服务日志', 'error'); }
+    else toast((e && e.message) || ('创建失败: ' + status), 'error');
+  } finally {
+    _creating = false; btn.disabled = false; btn.textContent = '+ 创建账号';
+  }
+}
+
+async function loadUsers() {
+  try {
+    const r = await fetch(API + '/v1/bidding/admin/users', {
+      headers: { 'Authorization': 'Bearer ' + TOKEN },
+    });
+    if (r.status === 404 || r.status === 503) { document.getElementById('userDisabled').classList.remove('hidden'); return; }
+    if (r.status === 401) { logout(); return; }
+    if (!r.ok) throw new Error('加载失败: ' + r.status);
+    const d = await r.json();
+    const items = d.items || [];
+    const tb = document.getElementById('userTable');
+    const empty = document.getElementById('userEmpty');
+    empty.classList.toggle('hidden', items.length > 0);
+    tb.innerHTML = items.map(u => {
+      const st = u.status === 'active'
+        ? '<span class="badge active">启用</span>'
+        : '<span class="badge inactive">停用</span>';
+      const stBtn = u.status === 'active'
+        ? '<button class="btn-sm danger" onclick="toggleUser(\'' + esc(u.agent_id) + '\', \'inactive\', this)">停用</button>'
+        : '<button class="btn-sm" onclick="toggleUser(\'' + esc(u.agent_id) + '\', \'active\', this)">启用</button>';
+      return '<tr>' +
+        '<td style="font-family:monospace;font-size:12px">' + esc(u.agent_id) + '</td>' +
+        '<td>' + esc(u.name || '') + '</td>' +
+        '<td class="type-tag">' + esc(u.account_type_label || u.account_type || '') + '</td>' +
+        '<td>' + st + '</td>' +
+        '<td style="color:var(--sub);font-size:12px">' + esc((u.created_at || '').slice(0, 10)) + '</td>' +
+        '<td>' +
+          '<button class="btn-sm" onclick="resetPwd(\'' + esc(u.agent_id) + '\')">重置密码</button> ' +
+          stBtn +
+        '</td></tr>';
+    }).join('');
+  } catch (e) {
+    toast('加载账号失败: ' + esc(e.message), 'error');
+  }
+}
+
+async function toggleUser(agentId, status, btn) {
+  if (!confirm('确认' + (status === 'inactive' ? '停用' : '启用') + '账号 ' + agentId + '？')) return;
+  btn.disabled = true;
+  try {
+    const r = await fetch(API + '/v1/bidding/admin/users/' + encodeURIComponent(agentId) + '/status', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN },
+      body: JSON.stringify({ status }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.detail || '操作失败: ' + r.status);
+    toast(d.message || '已更新', 'success');
+    loadUsers();
+  } catch (e) {
+    toast(e.message, 'error'); btn.disabled = false;
+  }
+}
+
+async function resetPwd(agentId) {
+  const pwd = prompt('为账号 ' + agentId + ' 设置新密码（≥8位含字母数字）：');
+  if (!pwd) return;
+  try {
+    const r = await fetch(API + '/v1/bidding/admin/users/' + encodeURIComponent(agentId) + '/password', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN },
+      body: JSON.stringify({ new_password: pwd }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.detail || '操作失败: ' + r.status);
+    toast(d.message || '密码已重置', 'success');
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
+// ── 部门映射（复用投标 /admin/departments 接口） ──
+
+let _deptUpdating = false;
+async function upsertDepartment() {
+  const agent_id = document.getElementById('dAgent').value.trim();
+  const enterprise_id = document.getElementById('dEnt').value.trim();
+  const department_id = document.getElementById('dDept').value.trim();
+  if (!agent_id || !enterprise_id || !department_id) return toast('请填写登录名、企业ID、部门ID', 'error');
+  const btn = document.getElementById('deptBtn');
+  if (_deptUpdating || btn.disabled) return;
+  _deptUpdating = true; btn.disabled = true; btn.textContent = '配置中...';
+  let r;
+  try {
+    r = await fetch(API + '/v1/bidding/admin/departments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN },
+      body: JSON.stringify({ agent_id, enterprise_id, department_id }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error((d.error && d.error.message) || d.detail || '配置失败: ' + r.status);
+    toast(d.message || '映射已配置', 'success');
+    document.getElementById('dAgent').value = '';
+    document.getElementById('dEnt').value = '';
+    document.getElementById('dDept').value = '';
+    loadDepartments();
+  } catch (e) {
+    if (r && r.status === 401) { logout(); return; }
+    toast(e.message || '配置失败', 'error');
+  } finally {
+    _deptUpdating = false; btn.disabled = false; btn.textContent = '配置映射';
+  }
+}
+
+async function loadDepartments() {
+  try {
+    const r = await fetch(API + '/v1/bidding/admin/departments', {
+      headers: { 'Authorization': 'Bearer ' + TOKEN },
+    });
+    if (r.status === 401) { logout(); return; }
+    if (r.status === 404 || r.status === 503) { document.getElementById('deptDisabled').classList.remove('hidden'); return; }
+    if (!r.ok) throw new Error('加载失败: ' + r.status);
+    const d = await r.json();
+    const items = d.items || [];
+    const tb = document.getElementById('deptTable');
+    const empty = document.getElementById('deptEmpty');
+    empty.classList.toggle('hidden', items.length > 0);
+    tb.innerHTML = items.map(m => {
+      return '<tr>' +
+        '<td style="font-family:monospace;font-size:12px">' + esc(m.agent_id) + '</td>' +
+        '<td style="font-family:monospace;font-size:12px;color:var(--primary)">' + esc(m.department_key) + '</td>' +
+        '<td style="color:var(--sub);font-size:12px">' + esc((m.created_at || '').slice(0, 10)) + '</td>' +
+        '<td><button class="btn-sm danger" onclick="removeDepartment(\'' + esc(m.agent_id) + '\')">移除</button></td>' +
+        '</tr>';
+    }).join('');
+  } catch (e) {
+    toast('加载部门映射失败: ' + esc(e.message), 'error');
+  }
+}
+
+async function removeDepartment(agentId) {
+  if (!confirm('确认移除 ' + agentId + ' 的部门映射？该账号将回落到个人空间。')) return;
+  let r;
+  try {
+    r = await fetch(API + '/v1/bidding/admin/departments/' + encodeURIComponent(agentId), {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + TOKEN },
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error((d.error && d.error.message) || d.detail || '移除失败: ' + r.status);
+    toast(d.message || '已移除', 'success');
+    loadDepartments();
+  } catch (e) {
+    if (r && r.status === 401) { logout(); return; }
+    toast(e.message, 'error');
+  }
+}
+
+// ── 系统状态（轻量） ──
+async function checkHealth() {
+  const dot = document.getElementById('healthDot');
+  const text = document.getElementById('healthText');
+  const meta = document.getElementById('healthMeta');
+  try {
+    const r = await fetch(API + '/health');
+    if (!r.ok) throw new Error('status ' + r.status);
+    const d = await r.json().catch(() => ({}));
+    dot.classList.remove('down');
+    text.textContent = '服务在线';
+    meta.textContent = (d.version || d.status || '') + ' · ' + (new Date()).toLocaleTimeString('zh-CN');
+  } catch (e) {
+    dot.classList.add('down');
+    text.textContent = '服务不可达';
+    meta.textContent = String(e.message || e);
+  }
+}
+</script>
+</body>
+</html>

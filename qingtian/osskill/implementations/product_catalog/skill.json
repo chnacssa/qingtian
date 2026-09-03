@@ -1,0 +1,68 @@
+{
+  "name": "product_catalog",
+  "display_name": "产品目录管理",
+  "version": "1.0.0",
+  "description": "管理企业产品目录，创建/查询/更新产品信息，支持 XLSX 批量导入",
+  "category": "product",
+  "tags": [
+    "catalog",
+    "product",
+    "enterprise"
+  ],
+  "author": {
+    "type": "enterprise",
+    "name": "ACSSA团队",
+    "contact": "dev@qingtian.dev"
+  },
+  "compliance": {
+    "data_handling": "local"
+  },
+  "copyright": {
+    "declaration": "© 2026 ACSSA团队。保留所有权利。",
+    "license": "Apache-2.0"
+  },
+  "license_info": {
+    "type": "free"
+  },
+  "entry": {
+    "class": "ProductCatalogSkill",
+    "file": "product_catalog.py"
+  },
+  "permissions": [
+    "network"
+  ],
+  "lifecycle": "on_demand",
+  "resources": {
+    "cpu": "low",
+    "memory_mb": 128,
+    "api_calls_per_minute": 30
+  },
+  "network": {
+    "outbound": {
+      "allowed": true,
+      "allowed_domains": [
+        "127.0.0.1",
+        "localhost"
+      ]
+    },
+    "inbound": {
+      "port_required": false
+    }
+  },
+  "dependencies": {
+    "qingtian": ">=2.0.0",
+    "skills": {}
+  },
+  "commands": [
+    {
+      "word": "catalog",
+      "action": "list_products",
+      "description": "产品目录管理",
+      "examples": [
+        "!!catalog!! 列出所有产品",
+        "!!catalog!! 创建新产品"
+      ]
+    }
+  ],
+  "certificate": "ee0d7e3df11d30e634778267537e9725355929fc446b03e57e4f8ea174b079b8089644378330fee72e709a68f97d10f4c055758e5d1a5ddfd0c606c61de5960f"
+}

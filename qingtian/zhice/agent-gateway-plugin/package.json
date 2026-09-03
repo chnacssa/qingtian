@@ -1,0 +1,9 @@
+{
+  "name": "zhice-gateway",
+  "version": "3.1.0",
+  "main": "index.js",
+  "description": "执策任务网关 — 消息入口拦截，自动注册执策 Task",
+  "openclaw": {
+    "plugin": "openclaw.plugin.json"
+  }
+}

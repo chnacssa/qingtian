@@ -1,0 +1,74 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: pgvector/pgvector:0.8.0-pg16
+    environment:
+      POSTGRES_DB: qingtian
+      POSTGRES_USER: qingtian
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-qingtian-2026}"
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./qingtian/scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qingtian"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  qingtian:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "1996:1996"
+    environment:
+      QINGTIAN_CONFIG: /app/qingtian/config.yaml
+      # 数据库密码（与 postgres 服务的 POSTGRES_PASSWORD 同源，改一处即可）
+      QINGTIAN_DB_PASSWORD: "${POSTGRES_PASSWORD:-qingtian-2026}"
+      # 产品目录模块自建连接池（product/db.py 不走 common.db），容器内需指向 postgres 服务
+      QINGTIAN_DB_HOST: postgres
+      # Redis 地址（容器内指向 compose 的 redis 服务；config.yaml.example 默认 localhost 供裸机用）
+      QINGTIAN_REDIS_URL: redis://redis:6379/0
+      # 必填: LLM API 密钥
+      DEEPSEEK_API_KEY: "${DEEPSEEK_API_KEY}"
+      # 选填: embedding API（使用 fastembed 时可省略）
+      DASHSCOPE_API_KEY: "${DASHSCOPE_API_KEY:-}"
+      # 选填: 管理令牌
+      ZHENYUE_ADMIN_TOKEN: "${ZHENYUE_ADMIN_TOKEN:-dev-token}"
+      YONGHENG_BOOTSTRAP_TOKEN: "${YONGHENG_BOOTSTRAP_TOKEN:-dev-bootstrap}"
+      # 汇川文件存储（挂到持久卷，防止重启丢文件）
+      QINGTIAN_HUICHUAN_STORAGE: /app/data/huichuan
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - qingtian_data:/app/data
+      # 挂载宿主 cgroup 让容器内资源隔离可用（需 cgroup delegation + 足够权限；
+      # 仍有安全代价，生产环境仍推荐 Linux 裸机/VM + systemd，见 docs/platform-support.md）
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:1996/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  qingtian_data:

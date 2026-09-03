@@ -1,0 +1,7 @@
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests", "zhice/tests", "yongheng/tests", "huanyu/tests", "zhenyue/tests", "xixing/tests", "huichuan/tests", "siku/tests", "xihe/tests"]
+markers = [
+    "integration: 需要 PostgreSQL/Redis 等外部服务的集成测试",
+    "asyncio: async test marker",
+]

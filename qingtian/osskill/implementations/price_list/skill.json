@@ -1,0 +1,68 @@
+{
+  "name": "price_list",
+  "display_name": "报价单管理",
+  "version": "1.0.0",
+  "description": "创建/更新/版本管理报价单，支持每日自动更新标记和 XLSX 导入",
+  "category": "product",
+  "tags": [
+    "price",
+    "quotation",
+    "enterprise"
+  ],
+  "author": {
+    "type": "enterprise",
+    "name": "ACSSA团队",
+    "contact": "dev@qingtian.dev"
+  },
+  "compliance": {
+    "data_handling": "local"
+  },
+  "copyright": {
+    "declaration": "© 2026 ACSSA团队。保留所有权利。",
+    "license": "Apache-2.0"
+  },
+  "license_info": {
+    "type": "free"
+  },
+  "entry": {
+    "class": "PriceListSkill",
+    "file": "price_list.py"
+  },
+  "permissions": [
+    "network"
+  ],
+  "lifecycle": "on_demand",
+  "resources": {
+    "cpu": "low",
+    "memory_mb": 128,
+    "api_calls_per_minute": 30
+  },
+  "network": {
+    "outbound": {
+      "allowed": true,
+      "allowed_domains": [
+        "127.0.0.1",
+        "localhost"
+      ]
+    },
+    "inbound": {
+      "port_required": false
+    }
+  },
+  "dependencies": {
+    "qingtian": ">=2.0.0",
+    "skills": {}
+  },
+  "commands": [
+    {
+      "word": "price",
+      "action": "list_price_lists",
+      "description": "报价单管理",
+      "examples": [
+        "!!price!! 列出所有报价单",
+        "!!price!! 创建新报价单"
+      ]
+    }
+  ],
+  "certificate": "bcd2516df33bad2b8572a2df13a9c20840c0a527e4a9467c5929bad3f8485ba57206f8af45dd626ad0906a7b949a0d781cce136acf8617f444d1aae9c3b01304"
+}

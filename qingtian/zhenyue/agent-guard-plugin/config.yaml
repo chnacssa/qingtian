@@ -1,0 +1,102 @@
+# 镇岳 OpenClaw Plugin — 危险工具规则表
+# 此文件由 fs.watch 热加载，或通过 /zhenyue/rules/reload 手动刷新
+
+# ── 审批超时（秒） ──
+timeout:
+  critical: 300   # 5 分钟
+  warning: 600    # 10 分钟
+
+# ── 审计端点 ──
+audit:
+  endpoint: "http://127.0.0.1:1996/v1/zhenyue/audit/entry"
+
+# ── 审批人（接收审批推送通知） ──
+approver:
+  # 部署时回填真实审批人飞书 open_id（此占位符仅随开源仓库分发）；改动后 fs.watch 热加载即生效，无需重启
+  feishu_open_id: "ou_xxxxxxxx"
+
+# ── 白名单（直接放行，不经过规则检查） ──
+allowlist:
+  # 运维诊断命令放行（ssh/npm/which/type/find 等）
+  - tool: exec
+    match: ^(ssh|sshpass|npm|which|type|find|ls|cat|head|tail|ps|df|free|uptime|uname|hostname|env|echo|pwd|id)\s
+  # git 读写操作放行（onlineboard 同步 + 代码分析）
+  - tool: exec
+    match: git\s+(add|commit|push|pull|rebase|ls-tree|log|show|diff|status|branch|stash|fetch|merge|checkout|rev-parse|config|remote)
+
+# ── 危险工具规则 ──
+rules:
+  # ═══ 完全禁止（不经过审批，直接拦截） ═══
+  - tool: exec
+    match: ^rm\s+(-rf?\s+)?\/.*|dd\s+if=\/dev\/zero.*
+    field: command
+    severity: block
+    reason: "禁止危险系统命令：破坏性删除或磁盘覆写"
+
+  - tool: exec
+    match: ^mkfs\.|^mkfs\s
+    field: command
+    severity: block
+    reason: "禁止格式化文件系统"
+
+  # ═══ 需要审批 ═══
+  - tool: exec
+    match: rm|chmod|chown|dd|reboot|shutdown|poweroff|halt
+    field: command
+    severity: log_only
+    approval_severity: critical
+
+  - tool: edit
+    match: /etc/(passwd|shadow|sudoers|ssh|hosts|resolv\.conf)
+    field: path
+    severity: log_only
+    approval_severity: critical
+
+  - tool: write
+    match: \.(env|pem|key|token|secret)$|credentials|config\.json
+    field: path
+    severity: log_only
+    approval_severity: warning
+
+  - tool: write
+    match: ^/etc/
+    field: path
+    severity: log_only
+    approval_severity: critical
+
+  # ═══ 仅审计 ═══
+  - tool: exec
+    match: curl|wget|git\s+clone
+    field: command
+    severity: log_only
+
+  # ── 兜底规则（未匹配规则的操作，仅审计，不弹审批） ──
+  - tool: exec
+    match: .*
+    field: command
+    severity: log_only
+
+  # ── 兜底：read 工具（tail/cat/read 等）──
+  - tool: read
+    match: .*
+    field: path
+    severity: log_only
+
+  # ── 兜底：edit 工具 ──
+  - tool: edit
+    match: .*
+    field: path
+    severity: log_only
+
+  # ── 兜底：write 工具 ──
+  - tool: write
+    match: .*
+    field: path
+    severity: log_only
+
+  # ── 未来扩展 ──
+  # - tool: sessions_spawn
+  #   match: codex|claude
+  #   field: agentId
+  #   severity: log_only
+  #   approval_severity: high

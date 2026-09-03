@@ -1,0 +1,68 @@
+{
+  "name": "document",
+  "display_name": "企业文档管理",
+  "version": "1.0.0",
+  "description": "管理企业公共文档（资质、证书、样本、合同模板）的上传/查询/删除",
+  "category": "product",
+  "tags": [
+    "document",
+    "enterprise",
+    "productivity"
+  ],
+  "author": {
+    "type": "enterprise",
+    "name": "ACSSA团队",
+    "contact": "dev@qingtian.dev"
+  },
+  "compliance": {
+    "data_handling": "local"
+  },
+  "copyright": {
+    "declaration": "© 2026 ACSSA团队。保留所有权利。",
+    "license": "Apache-2.0"
+  },
+  "license_info": {
+    "type": "free"
+  },
+  "entry": {
+    "class": "DocumentSkill",
+    "file": "document.py"
+  },
+  "permissions": [
+    "network"
+  ],
+  "lifecycle": "on_demand",
+  "resources": {
+    "cpu": "low",
+    "memory_mb": 128,
+    "api_calls_per_minute": 30
+  },
+  "network": {
+    "outbound": {
+      "allowed": true,
+      "allowed_domains": [
+        "127.0.0.1",
+        "localhost"
+      ]
+    },
+    "inbound": {
+      "port_required": false
+    }
+  },
+  "dependencies": {
+    "qingtian": ">=2.0.0",
+    "skills": {}
+  },
+  "commands": [
+    {
+      "word": "doc",
+      "action": "list_documents",
+      "description": "企业文档管理",
+      "examples": [
+        "!!doc!! 列出所有文档",
+        "!!doc!! 上传合同模板"
+      ]
+    }
+  ],
+  "certificate": "3def26b364617a2b695ee64f496afd21a67b355e4e072f07ca8955c01ee8c7160ae35027ee39fa34d719d630198efdad66461bbc7061b1834105d72e864a8f0b"
+}

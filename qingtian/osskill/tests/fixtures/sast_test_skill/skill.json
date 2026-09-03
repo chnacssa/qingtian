@@ -1,0 +1,8 @@
+{
+  "name": "sast_test_skill",
+  "display_name": "SAST Test Skill",
+  "version": "1.0.0",
+  "description": "测试 SAST 权限检查的示例 Skill",
+  "permissions": ["network", "llm"],
+  "entry": {"class": "SastTestSkill", "file": "main.py"}
+}

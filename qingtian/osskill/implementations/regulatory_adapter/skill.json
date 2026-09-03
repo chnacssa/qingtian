@@ -1,0 +1,45 @@
+{
+  "name": "regulatory_adapter",
+  "display_name": "监管适配器",
+  "version": "1.0.0",
+  "description": "将外部 SKILL.md 格式的指令型 Skill 纳入ACSSA羲和+镇岳安全监管体系执行。不是格式转换，是安全接入。",
+  "category": "system",
+  "tags": [
+    "system",
+    "safety",
+    "adapter"
+  ],
+  "author": {
+    "type": "enterprise",
+    "name": "ACSSA团队",
+    "contact": "dev@qingtian.dev"
+  },
+  "compliance": {
+    "data_handling": "local"
+  },
+  "copyright": {
+    "declaration": "© 2026 ACSSA团队。保留所有权利。",
+    "license": "Apache-2.0"
+  },
+  "license_info": {
+    "type": "free"
+  },
+  "entry": {
+    "class": "RegulatoryAdapterSkill",
+    "file": "regulatory_adapter.py"
+  },
+  "permissions": [
+    "llm"
+  ],
+  "lifecycle": "on_demand",
+  "resources": {
+    "cpu": "low",
+    "memory_mb": 128,
+    "api_calls_per_minute": 20
+  },
+  "dependencies": {
+    "qingtian": ">=2.0.0",
+    "skills": {}
+  },
+  "certificate": "20fbd68db51e06c06f1c99547532f53f9f4e1047dfaa529a54ceed946e5b562ae753d44bbb415e44260a15e76667e183fc3abf412f23e6f992233f8ce22add0c"
+}

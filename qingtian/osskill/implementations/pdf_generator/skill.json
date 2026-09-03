@@ -1,0 +1,74 @@
+{
+  "name": "pdf_generator",
+  "display_name": "PDF 生成器",
+  "version": "1.0.0",
+  "description": "HTML 到 PDF 转换、PDF 合并拆分、加页码水印、元信息编辑。输出结构化内容 + 操作指南。",
+  "category": "tool",
+  "tags": [
+    "pdf",
+    "document",
+    "converter",
+    "productivity"
+  ],
+  "author": {
+    "type": "community",
+    "name": "ClawHub 社区 / ACSSA 适配",
+    "contact": "dev@qingtian.dev",
+    "website": "https://acssa.cn"
+  },
+  "compliance": {
+    "data_handling": "local",
+    "gdpr": false,
+    "audit_log": true
+  },
+  "copyright": {
+    "declaration": "源自 ClawHub 社区，MIT 协议。© 2026 ACSSA团队适配。",
+    "license": "MIT"
+  },
+  "license_info": {
+    "type": "free"
+  },
+  "entry": {
+    "class": "PdfGeneratorSkill",
+    "file": "pdf_generator.py"
+  },
+  "permissions": [
+    "llm"
+  ],
+  "lifecycle": "on_demand",
+  "resources": {
+    "cpu": "low",
+    "memory_mb": 128,
+    "api_calls_per_minute": 30,
+    "max_concurrent_requests": 5
+  },
+  "network": {
+    "outbound": {
+      "allowed": false,
+      "allowed_domains": []
+    },
+    "inbound": {
+      "port_required": false
+    }
+  },
+  "dependencies": {
+    "qingtian": ">=2.0.0",
+    "skills": {}
+  },
+  "health_check": {
+    "interval_seconds": 30,
+    "timeout_seconds": 5
+  },
+  "commands": [
+    {
+      "word": "pdf",
+      "action": "execute",
+      "description": "PDF 生成与处理",
+      "examples": [
+        "!!pdf!! 把这份报告转成PDF",
+        "!!pdf!! 给PDF加水印"
+      ]
+    }
+  ],
+  "certificate": "de44c1566e8329861f5451e92bdc9bbe345d045e7504dd9b0a085f77f35581de9ad0e28341ac8b35064896f31483f987036018df9203671c70434ce4dd95e807"
+}

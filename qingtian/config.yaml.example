@@ -1,0 +1,515 @@
+# ACSSA 智能体操作系统（底座 OS）全局配置
+# ===
+# 本文件为部署模板：复制为 config.yaml（或按需覆盖字段）后使用。
+# 敏感值一律用环境变量注入（禁止明文入库），环境变量优先级高于本文件。
+#
+# role: company | management | procurement | sales
+#   - company: 企业部署（开源默认角色），单底座，跨企业协作经官方 Hub 中转
+#   - management: 内测私有，全局调度 + 全量采集/扫描/蒸馏
+#   - procurement: 内测私有，仅 Agent 个人进化
+#   - sales: 内测私有，仅 Agent 个人进化
+#
+# 必配环境变量（详见 docs/部署环境变量说明.md）：
+#   DEEPSEEK_API_KEY         LLM 调用（yongheng/bidding/common 三档路由）
+#   DASHSCOPE_API_KEY        embedding + 三档路由 simple 档（采购/销售必需）
+#   ZHENYUE_ADMIN_TOKEN      镇岳管理令牌（bootstrap_admin_token + openclaw adapter push token）
+#   QINGTIAN_DB_PASSWORD     数据库密码（database.password 留空时唯一注入通道）
+# 可选：QINGTIAN_CONFIG / HUANYU_SIGN_KEY / YONGHENG_BOOTSTRAP_TOKEN /
+#       QINGTIAN_PORTAL_MAX_UPLOAD_MB / QINGTIAN_SKILLS_DIR / QINGTIAN_SKILL_DATA_DIR /
+#       ZHICE_DB_HOST / ZHICE_DB_USER / ZHICE_DB_NAME
+
+role: company
+host: procurement-server
+# B5: host_ip 内网地址禁止入库，部署时通过 config.local.yaml 覆盖。
+host_ip: ""
+
+# QACP 组织/地域标识（AIN 生成用）
+organization: acssa
+country: cn
+city: hf
+
+# 数据库
+database:
+  host: postgres
+  port: 5432
+  db: qingtian
+  user: qingtian
+  # B3: 密码禁止明文入库！通过环境变量 QINGTIAN_DB_PASSWORD 注入，
+  # 留空表示未配置（部署脚本会提示设置）。
+  password: ""
+
+# 服务端口
+service:
+  port: 1996           # 底座 OS 统一端口 :1996
+
+# 吸星（知识进化）
+xixing:
+  schema_name: xixing
+  global_namespace: global
+  base_dir: /root/.openclaw/workspace
+  timezone: Asia/Shanghai     # 调度器时区（北京时间 UTC+8）
+
+  # 采集
+  collect:
+    mode: enforce               # enforce(拦截) / log_only(仅审计) / disabled(关闭)
+    fetch_timeout: 60        # 单源超时秒
+    max_content_size: 524288 # 500KB
+    user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
+
+    # ── 反爬配置 ──────────────────────────────
+    # 代理池（支持 http / https / socks5）。为空时不使用代理。
+    proxy: ""                              # 单代理 URL（如 "http://127.0.0.1:7890"）
+    # proxies:                             # 代理池列表（与 proxy 二选一，列表优先）
+    #   - "http://proxy1:8080"
+    #   - "socks5://proxy2:1080"
+    #   - "http://user:pass@proxy3:3128"
+
+    # 请求间隔 — 源与源之间的延迟，防速率限制
+    request_delay_seconds: 2.0             # 基础延迟（秒）
+    request_delay_jitter: 0.5              # 随机抖动上限（秒），最终延迟 = base + uniform(0, jitter)
+
+    # TLS 指纹模拟 — 需要 pip install curl_cffi，为空则退回 httpx
+    tls_impersonate: "chrome124"           # chrome124|chrome131|safari17_0|edge101|firefox133|""
+
+    # Playwright JS 渲染 — 仅对 requires_js: true 的源在 extraction_level >= 2 时启用
+    playwright_timeout: 15                 # 页面加载超时（秒）
+
+  # 质量门
+  quality_gate:
+    min_content_length: 200
+    min_relevance_score: 0.35
+    min_quality_score: 0.4
+    fuzzy_dedup_threshold: 0.8
+    max_freshness_days: 30
+    dedup_ttl_days: 7             # 采集去重窗口：同源同哈希在此天数内视为重复
+
+  # 分类
+  classifier:
+    llm_fallback_threshold: 0.6
+    model: "deepseek-v4-flash"
+
+  # 蒸馏
+  distiller:
+    enabled: false
+    model: "deepseek-v4-pro"
+    max_source_memories: 500
+    min_cluster_size: 2
+
+  # 竞品扫描
+  scanner:
+    enabled: false
+    top_n: 10
+    proposal_model: "deepseek-v4-flash"  # 提案生成 LLM
+
+  # 踩坑
+  xizhenji:
+    auto_capture: true
+    min_severity_for_llm: "high"
+
+  # 调度
+  scheduler:
+    enabled: false
+
+  # 从属服务器知识同步（仅 procurement / sales 需开启）
+  sync:
+    enabled: false                     # 从属服务器设为 true
+    management_url: "http://localhost:1996"  # 管理服务器地址
+    interval_minutes: 360              # 拉取间隔（分钟），默认 6 小时
+    capability_sync: true              # 是否同步能力差距检测（从属端对比管理端自评）
+    capability_gap_threshold: 0.05     # 差距阈值（管理端-本地 > 此值才告警）
+    capability_dedup_days: 7           # 同维度去重天数（避免重复告警）
+    # capability_shared_dimensions  # 覆盖通用维度列表（默认从 CAPABILITY_DIMENSIONS.scope="shared" 读取）
+    # ── 自动部署（检测到能力差距后自动 git pull + 重启）──
+    auto_deploy: false                   # 是否启用自动部署（默认关闭，需手动开启）
+    deploy_cooldown_minutes: 30          # 部署冷却期（两次部署最小间隔）
+    deploy_max_failures: 3               # 连续失败上限（超限后暂停自动部署）
+    deploy_health_timeout_seconds: 30    # 部署后健康检查轮询超时
+    deploy_restart_command: "systemctl restart qingtian"  # 重启命令
+    # ── 同步时间窗口（从属端仅在窗口内执行同步，避免影响白天业务）──
+    time_window_start_hour: 0           # 窗口起始小时（含），默认 0 点
+    time_window_end_hour: 6             # 窗口结束小时（不含），默认 6 点
+
+# 寰宇（通信目录）
+huanyu:
+  schema_name: huanyu
+  # 签名密钥：生产环境通过 HUANYU_SIGN_KEY 环境变量设置，优先级高于此配置
+  # sign_key: ""
+  max_counters: 5
+  peer_id: "management-server"
+  peer_name: "management-server"
+  peer_port: 1996
+  # Redis URL：管理服务器用 localhost，采购/销售通过 wg0 连管理服务器
+  #   management:  redis://localhost:6379
+  #   procurement: redis://10.0.100.1:6379   (管理服务器 wg0 IP)
+  #   sales:       redis://10.0.100.1:6379
+  redis_url: "redis://localhost:6379"
+  release_manifest: "/opt/qingtian/releases/manifest.json"
+  hub_endpoint: "http://10.0.100.1:1996"   # 非管理底座必配 — 向管理底座报 HTTP 心跳（OSPF DR 模型）
+  # heartbeat_interval_seconds: 300           # Agent 心跳间隔
+  # heartbeat_miss_threshold: 3               # 心跳丢失阈值 → 标记 inactive
+
+# 永恒（记忆检索）
+yongheng:
+  schema_name: yongheng
+  embedding:
+    provider: fastembed       # fastembed | dashscope
+    model_name: "BAAI/bge-small-zh-v1.5"  # fastembed: BAAI/bge-small-zh-v1.5; dashscope: text-embedding-v2
+    cache_path: "/opt/qingtian/models/"
+    threads: 2
+    dimension: 512            # bge-small=512; dashscope text-embedding-v2=1536（切 API 后需改 + 重建索引）
+  dashscope:
+    api_key: "${DASHSCOPE_API_KEY}"   # 必配：阿里云 DashScope API Key（embedding 用）
+    embedding_url: "https://dashscope.aliyuncs.com/api/v1/services/embeddings/text-embedding/text-embedding"
+    timeout: 30               # 单次 API 请求超时（秒）
+    max_batch: 10             # 批量嵌入每批最大文本数
+  llm:
+    provider: deepseek
+    base_url: "https://api.deepseek.com/v1"
+    api_key: "${DEEPSEEK_API_KEY}"    # 必配：DeepSeek API Key（LLM 调用）
+    high_value_model: "deepseek-v4-flash"
+    digest_model: "deepseek-v4-pro"
+    agentic_model: "deepseek-v4-flash"
+  consolidate:
+    token_budget: 20000
+    max_records_per_run: 2000
+    min_days_between: 7
+  rate_limit:
+    write: 60
+    search: 120
+    context: 60
+    session_start: 60
+    session_end: 30
+  batch:
+    max_size: 20
+  search:
+    rrf_k: 60
+    default_top_k: 5
+    context_default_top_k: 10
+    time_decay:
+      recent_days: 30
+      medium_days: 90
+      recent_weight: 1.0
+      medium_weight: 0.5
+    hit_exemption:
+      min_hits: 5
+      max_bonus: 0.1
+      reset_after_days: 180
+  learned:
+    max_items_soft: 50
+    min_confidence: 0.5
+    duplicate_threshold: 5
+
+# 总线调度（Bus Scheduler）
+# Agent 生命周期自动编排，在网关层拦截请求完成注册/接管/上下文注入
+bus:
+  enabled: false                    # 总开关
+  auto_register: true              # 自动注册未知 Agent 到寰宇
+  auto_adopt: true                 # 自动接管已注册 Agent
+  state_cache_ttl_seconds: 300     # BusStateTable 缓存 TTL
+  skip_paths:
+    - "/health"
+    - "/favicon"
+    - "/.well-known"
+    - "/v1/auth"
+    - "/v1/zhenyue/approvals"
+    - "/v1/xihe"
+    - "/docs"
+    - "/openapi"
+
+# 网关 / Agent Runtime Manager（ARM）
+# mode: log_only | enforce | disabled
+gateway:
+  middleware:
+    mode: log_only
+
+  # Agent Adapter 接口层 — 配置驱动注册
+  adapters:
+    enabled: true            # 总开关，开启适配器认证链
+    openclaw:
+      enabled: true
+      priority: 10
+      push:
+        endpoint: "http://127.0.0.1:18789"
+        token: "${ZHENYUE_ADMIN_TOKEN}"   # 必配：镇岳管理令牌（OpenClaw adapter push 鉴权）
+        path_template: "/api/sessions/{agent_id}/messages"
+    hermes:
+      enabled: false
+      priority: 20
+
+  trace:
+    enabled: true
+
+agents:
+  builtin:
+    enabled: false
+    monitor:
+      auto_start: true
+      restart_policy: always
+    scheduler:
+      auto_start: true
+      restart_policy: always
+
+# 镇岳（安全审计）
+zhenyue:
+  schema_name: zhenyue
+  encryption:
+    key_dir: "/opt/qingtian/keys"
+    master_key_file: "master.key"
+  auth:
+    bootstrap_admin_token: "${ZHENYUE_ADMIN_TOKEN}"   # 必配：镇岳首次部署管理令牌（重启后自动生成）
+  audit:
+    prev_hash_genesis: "0000000000000000000000000000000000000000000000000000000000000000"
+    auto_verify_schedule: "0 3 * * *"
+  approval:
+    default_timeout_high: 3600
+    default_timeout_critical: 1800
+    escalation_after_high: 600
+    escalation_after_critical: 300
+    approver_chains: {}
+  capabilities:
+    basic:
+      allowed_tools: ["search_agents", "get_agent", "get_inbox"]
+      max_message_rpm: 60
+      trust_weight: 0.1
+    verified:
+      allowed_tools: ["search_agents", "get_agent", "get_inbox", "send_message", "start_negotiation"]
+      max_message_rpm: 120
+      trust_weight: 0.3
+    trusted:
+      allowed_tools: ["search_agents", "get_agent", "get_inbox", "send_message", "start_negotiation", "create_agreement", "submit_rating"]
+      max_message_rpm: 300
+      trust_weight: 0.6
+    admin:
+      allowed_tools: ["*"]
+      max_message_rpm: 1000
+      trust_weight: 1.0
+  guard:
+    mode: enforce               # enforce(拦截) / log_only(仅审计) / disabled(关闭)
+  tool_rules:
+    path: "/opt/qingtian/tool-rules.yaml"
+  builtin_services: {}
+  rate_limit:
+    per_agent_rpm: 60
+    global_rpm: 500
+
+  # 删除隔离区
+  quarantine:
+    base_dir: "/opt/qingtian/quarantine"
+    retention_days: 30
+    purge_schedule: "0 3 * * *"
+    agent_quota_gb: 10
+
+  # 配置备份
+  backup:
+    base_dir: "/opt/qingtian/backups"
+    max_versions: 30
+    protected_paths:
+      - "/opt/qingtian/config.yaml"
+      - "/opt/qingtian/tool-rules.yaml"
+
+  # 外联监控
+  egress_monitor:
+    mode: log_only               # enforce / log_only / disabled
+    check_interval_seconds: 60
+    alert_threshold_mb: 10
+    whitelist:
+      - "api.deepseek.com"
+      - "dashscope.aliyuncs.com"
+      - "localhost"
+      - "10.0.0.0/8"
+      - "192.168.0.0/16"
+  break_glass:
+    enabled: false
+    token_path: "/opt/qingtian/break_glass.token"
+    allowed_actions: ["stop_agent", "isolate_agent", "block_ip"]
+    cooldown_minutes: 30
+  message_signing:
+    enabled: false
+    algorithm: "hmac-sha256"
+    time_window_seconds: 300
+    key_rotation_hours: 24
+    grace_period_seconds: 300
+
+# 汇川（知识管理）
+huichuan:
+  schema_name: "huichuan"
+  deploy_env: "prod"                 # 环境标识（dev/staging/prod），用于永恒 namespace 隔离
+  refine_cron: "0 2 * * *"          # 精炼管道 cron 表达式
+  refine_llm_model: "deepseek-v4-flash"
+  refine_batch_size: 20             # 每次精炼处理的条目数
+  dedup_threshold: 0.92             # embedding 余弦相似度判重阈值
+  max_knowledge_size: 50000         # 单条知识最大字符数
+  abstract_max_tokens: 3000         # 摘要拉取最大 token 数
+
+# 执策（任务管理器）
+zhice:
+  schema_name: zhice
+  timeout_check_interval_seconds: 30      # 看门狗扫描间隔
+  default_step_timeout_minutes: 30        # Step 默认超时
+  default_task_timeout_minutes: 120       # Task 默认超时
+  heartbeat_loss_minutes: 5               # 心跳丢失判定阈值
+  assignment_timeout_minutes: 10          # 分配未响应回收阈值
+
+  # 知识预检索 — 任务创建时自动搜索企业知识库和同岗经验
+  knowledge_search:
+    enabled: false                    # 总开关
+    max_results: 3                   # 最多注入知识条数
+    min_score: 0.5                   # 匹配最低相似度
+    search_timeout_seconds: 5        # 搜索超时（不阻塞任务创建）
+    mode: "hybrid"                   # keyword | semantic | hybrid
+
+# 司库（账户与计费）
+siku:
+  schema_name: siku
+  annual_free_months: 12          # 6 或 12，新注册 biz:seller 免期
+  pricing:
+    cert:
+      c1_fen: 16900
+      c2_fen: 36900
+      c3_fen: 56900
+    annual_fee_fen: 99600
+  payment_account:
+    aggregate_qr_code_url: ""       # 聚合收款码（三路合一）
+    corporate:
+      bank_name: ""
+      branch: ""
+      account_name: ""
+      account_number: ""
+      remark_hint: "转账备注请填写企业全称"
+    wechat:
+      merchant_name: ""
+      qr_code_url: ""
+      remark_hint: "转账备注请填写企业全称"
+    alipay:
+      merchant_name: ""
+      qr_code_url: ""
+      remark_hint: "转账备注请填写企业全称"
+  invoice:
+    output_dir: "/opt/qingtian/invoices"
+    issuer_default: "ACSSA财务"
+  im_channels:
+    feishu:
+      enabled: false
+      webhook_url: ""
+      verify_token: ""
+      encrypt_key: ""
+    wecom:
+      enabled: false
+      webhook_url: ""
+      corp_id: ""
+      agent_secret: ""
+      token: ""
+      encoding_aes_key: ""
+    wechat:
+      enabled: false
+      mode: enforce               # enforce(拦截) / log_only(仅审计) / disabled(关闭)
+      wecom_corp_id: ""
+      wecom_secret: ""
+      app_id: ""
+      app_secret: ""
+      token: ""
+      encoding_aes_key: ""
+    notify_rules:
+      large_payment_threshold_fen: 10000000
+      notify_on_forward: true
+      notify_on_confirm: true
+      notify_on_error: true
+      notify_on_lifecycle: false
+      human_approval_required: false
+      approval_timeout_minutes: 30
+
+# ── 投标系统（独立业务模块） ──
+bidding:
+  enabled: false
+  llm:
+    model: deepseek-v4-flash
+    base_url: "https://api.deepseek.com/v1/chat/completions"
+    max_calls_per_bid: 10
+  score:
+    dim_weights:
+      qual: 0.25
+      tech: 0.30
+      price: 0.25
+      biz: 0.10
+      complete: 0.10
+  feedback:
+    reminder_days: [1, 3, 7]
+    expire_days: 7
+  federation:
+    sync_push: true
+    sync_pull_hour: 3
+    min_sample_for_share: 5
+  cold_start:
+    use_public_data: true
+    public_data_sources: 3
+  file:
+    max_size_mb: 50
+
+# skill_proposals: 吸星 Skill 提案生成配置
+skill_proposals:
+  enabled: false                        # 总开关
+  min_frequency: 10                    # 频次阈值，低于此不生成
+  max_proposals_per_round: 5           # 每轮最多生成数
+  data_sources:
+    - name: baishitong
+      type: database
+      enabled: false
+      tables:
+        conversations: "baishitong.conversations"
+        corrections: "baishitong.corrections"
+      window_days: 7
+      max_conversations: 500
+      max_corrections: 200
+    - name: huichuan_feedback          # △ 规划扩展
+      type: database
+      enabled: false
+      tables:
+        quality_feedback: "huichuan.quality_feedback"
+    - name: feishu_messages            # △ 规划扩展
+      type: api
+      enabled: false
+
+# Token 配额（岗位智能体）
+# 各 Agent 月度 token 消耗限制。默认关闭，开启后限制最高额度。
+token_quota:
+  enabled: false              # 总开关，false=不限制，true=启用配额
+  max_tokens: 10_000_000      # 周期内最高 token 额度
+  warning_threshold: 0.8      # 警告阈值（比例），达到此值时日志提醒
+  period_days: 30             # 统计周期（天），到期自动重置
+
+# ── 模型资源层（P2 三档路由，2026-08-01 启用）──
+# 三档复杂度路由：simple(便宜快) / precise(现状 DeepSeek) / reasoning(推理型，可配)
+# 未显式配置全局 common.llm.provider/api_key/model → 全局默认仍走 yongheng 兜底，零侵入。
+common:
+  llm:
+    simple:                                    # 分类/抽取/格式转换/闲聊（便宜快）
+      provider: qwen
+      base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+      api_key: "${DASHSCOPE_API_KEY}"    # 来源：DASHSCOPE_API_KEY（与 yongheng 同源）
+      model: qwen-turbo
+    precise:                                   # 脱敏/翻译/文档分析（现状 DeepSeek）
+      provider: deepseek
+      base_url: "https://api.deepseek.com/v1"
+      api_key: "${DEEPSEEK_API_KEY}"    # 来源：DEEPSEEK_API_KEY（与 yongheng 同源）
+      model: deepseek-v4-flash-vision-exp
+    reasoning:                                 # 复杂推理/多步规划/竞标评分
+      provider: deepseek
+      base_url: "https://api.deepseek.com/v1"
+      api_key: "${DEEPSEEK_API_KEY}"    # 来源：DEEPSEEK_API_KEY（与 yongheng 同源）
+      model: deepseek-v4-flash-vision-exp  # 2026-08-24 波哥：切多模态 v4 flash；如需真推理模型可改 deepseek-reasoner
+    routing:
+      mode: rule                    # none | rule | llm（llm 轻判二期；none=关闭自动分档）
+      track_cost: true              # true=每次调用按档计价记账 + 预算守卫（daily_budget=0 则只记账不限）
+    pricing:                        # 元/1k token；daily_budget 0/缺省 = 不限
+      simple:    {per_1k_in: 0.002, per_1k_out: 0.006}
+      precise:   {per_1k_in: 0.002, per_1k_out: 0.008}
+      reasoning: {per_1k_in: 0.004, per_1k_out: 0.016}
+      daily_budget: 0.0             # 0 = 先记账不设硬上限（后续可按月评估设限）
+#       daily_budget: 50.0
+
+# 底座侧 Skill 许可验签公钥（SkillLicenseManager / 吊销名单在线验签，R11 信任链）
+skill:
+  blacklist_public_key: "${ACSSA_BLACKLIST_PUBLIC_KEY}"
+  # R11 信任校验：skill.json 所在根目录（fail-closed 下不配则 manifest=None → untrusted）
+  # 各技能形如 /opt/qingtian/skills/<skill_name>/skill.json
+  package_dir: "/opt/qingtian/skills"

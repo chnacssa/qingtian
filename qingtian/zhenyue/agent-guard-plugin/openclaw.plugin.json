@@ -1,0 +1,25 @@
+{
+  "id": "zhenyue-guard",
+  "name": "镇岳安全守卫",
+  "description": "第一层拦截：Agent 工具调用门控（before_tool_call 钩子）",
+  "version": "1.0.0",
+  "kind": "guard",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": true,
+    "properties": {
+      "target_path": {
+        "type": "string",
+        "description": "ACSSA config.yaml 路径（供 plugin 读取全局配置）"
+      },
+      "rules_path": {
+        "type": "string",
+        "description": "工具规则 YAML 文件路径（覆盖默认 config.yaml）"
+      },
+      "auditEndpoint": {
+        "type": "string",
+        "description": "镇岳审计日志写入端点"
+      }
+    }
+  }
+}
