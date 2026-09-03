@@ -1,5 +1,11 @@
 # ACSSA Agent Operating System — Production-Grade Multi-Agent Infrastructure for Enterprises
 
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Release](https://img.shields.io/badge/release-v0.1.0-2ea44f.svg)](https://github.com/chnacssa/qingtian/releases/tag/v0.1.0)
+[![Python](https://img.shields.io/badge/python-3.12%2B-3776AB.svg)](qingtian/requirements.txt)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16%2B-336791.svg)](docker-compose.yml)
+[![GitHub stars](https://img.shields.io/github/stars/chnacssa/qingtian?style=social)](https://github.com/chnacssa/qingtian/stargazers)
+
 **[简体中文](README.zh-CN.md)** | **English**
 
 > **A complete operating system for putting AI agents to work in the enterprise** — not a framework, not a demo, not a chatbot.

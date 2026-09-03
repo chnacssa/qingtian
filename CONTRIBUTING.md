@@ -1,120 +1,73 @@
-# 贡献指南
+# Contributing to ACSSA
 
-欢迎为ACSSA 智能体操作系统做贡献！本文档说明如何提交代码、报告问题和参与社区。
+**[简体中文](#简体中文)** | **English**
 
-## 行为准则
+Thank you for your interest in contributing! This guide covers the basics.
 
-- 尊重他人，就事论事
-- 欢迎不同观点，但保持专业
-- 不接受歧视、骚扰或攻击性言论
+## Ways to contribute
 
-## 如何贡献
+- **Bug reports** — open an issue with reproduction steps and logs
+- **Feature discussions** — open a discussion/issue describing the use case first, before writing code
+- **Code contributions** — bug fixes and module improvements (see "Good First Issues" on the issue tracker)
+- **Docs & translations** — README/quickstart fixes, new translations, examples
 
-### 报告 Bug
-
-1. 在 GitHub Issues 搜索是否已有相同问题
-2. 如果没有，新建 Issue，包含：
-   - ACSSA版本号（`GET /version`）
-   - 操作系统和 Python 版本
-   - 复现步骤
-   - 预期行为 vs 实际行为
-   - 相关日志（如有）
-
-### 提 Feature Request
-
-1. 先在 Discussions 区讨论想法
-2. 明确：解决什么问题、谁会用、为什么需要底座支持
-
-### 提交代码
-
-1. **Fork** 本仓库
-2. 创建 feature 分支：`git checkout -b feature/your-feature`
-3. 写代码 + 测试
-4. 确保测试通过：`pytest tests/ -v`
-5. 提交：`git commit -m "feat: 简短描述"`
-6. Push 并创建 Pull Request
-
-### Commit 规范
-
-```
-feat: 新功能
-fix: 修复 bug
-docs: 文档变更
-refactor: 重构（不改功能）
-test: 测试相关
-chore: 构建/工具链
-```
-
-### 代码规范
-
-- Python 3.12+，类型注解
-- 公共函数/类必须写 docstring
-- 新模块需在对应 `tests/` 目录下加测试
-- 不引入新的外部依赖，除非有明确理由
-
-### 测试
+## Development setup
 
 ```bash
-# 全部测试
-pytest tests/ -v
-
-# 单模块
-pytest huanyu/tests/ -v
-
-# 跳过集成测试（需要 PG + Redis）
-pytest tests/ -v -m "not integration"
+git clone https://github.com/chnacssa/qingtian.git
+cd qingtian/qingtian
+pip install -r requirements.txt
+# PostgreSQL 16+ and Redis 7+ running locally
+pytest tests/ -v          # full suite (needs PG + Redis)
+pytest huanyu/tests/ -v   # single module
 ```
 
-## CLA（贡献者许可协议）
+## Pull request guidelines
 
-提交代码即表示你同意：
-- 你的贡献以 Apache 2.0 协议授权
-- 你有权授予此授权（代码是你写的，或你有权提交）
-- 对于企业员工：请确认你的雇主知晓并同意
+1. Keep PRs **small and focused** — one fix or feature per PR
+2. Run the relevant test suite before submitting; new features need tests
+3. Follow the existing code style (type hints where present, `[trace]`-prefixed logging in critical paths)
+4. In your PR description, include the CLA confirmation line (see [CLA.md](CLA.md)):
+
+   ```
+   我已阅读并同意 CLA（贡献者许可协议）。
+   ```
+
+## Reporting security issues
+
+Please **do not** open public issues for security vulnerabilities — see [SECURITY.md](SECURITY.md) for the disclosure process.
+
+---
+
+# 简体中文
+
+感谢参与贡献！
+
+## 贡献方式
+
+- **Bug 报告**：提 issue，附复现步骤与日志
+- **功能讨论**：先提 discussion/issue 说明使用场景，再写代码
+- **代码贡献**：bug 修复与模块改进（issue 区有 Good First Issues 标签）
+- **文档与翻译**：README / quickstart 修订、新增语言翻译、示例
 
 ## 开发环境
 
 ```bash
 git clone https://github.com/chnacssa/qingtian.git
 cd qingtian/qingtian
-python3.12 -m venv venv
-source venv/bin/activate
 pip install -r requirements.txt
-cp config.yaml.example config.yaml
-# 编辑 config.yaml，配置 DEEPSEEK_API_KEY
-python3 main.py
+# 本地需 PostgreSQL 16+ 与 Redis 7+
+pytest tests/ -v          # 全量（需 PG + Redis）
+pytest huanyu/tests/ -v   # 单模块
 ```
 
-## 目录结构
+## PR 规范
 
-```
-qingtian/
-├── common/       # 公共基础设施（配置/DB/LLM）
-├── huanyu/       # 寰宇 — Agent 通信目录
-├── yongheng/     # 永恒 — 记忆检索
-├── xixing/       # 吸星 — 知识进化
-├── huichuan/     # 汇川 — 知识管理
-├── zhenyue/      # 镇岳 — 安全审计
-├── zhice/        # 执策 — 任务编排
-├── siku/         # 司库 — 账户计费
-├── gateway/      # 网关 — 中间件
-├── xihe/         # 羲和 — Agent 运行时
-├── osskill/      # Skill 框架
-│   └── implementations/  # 内建 Skill
-├── tests/        # 测试
-└── scripts/      # 脚本
-```
+1. **小而聚焦**——一个 PR 只做一件事
+2. 提交前跑相关测试；新功能必须带测试
+3. 遵循现有代码风格（已有类型注解处保持、关键路径日志带 `[trace]` 前缀）
+4. PR 描述中包含 CLA 确认行（见 [CLA.md](CLA.md)）：`我已阅读并同意 CLA（贡献者许可协议）。`
 
-## 代码审查
+## 安全问题
 
-所有 PR 需至少一位 maintainer 审查通过。审查关注：
-- 功能是否正确
-- 测试覆盖是否充分
-- 安全风险（SQL 注入/路径遍历/权限越界）
-- 对现有 API 的兼容性
-
-## 联系方式
-
-- GitHub Issues: [github.com/chnacssa/qingtian/issues](https://github.com/chnacssa/qingtian/issues)
-- 官网: [acssa.cn](https://acssa.cn)
-- 邮箱: dev@qingtian.dev
+漏洞请勿公开提 issue，走 [SECURITY.md](SECURITY.md) 披露流程。

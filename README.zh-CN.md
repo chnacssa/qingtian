@@ -1,5 +1,11 @@
 # ACSSA 智能体操作系统 — 企业生产级多智能体底座
 
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Release](https://img.shields.io/badge/release-v0.1.0-2ea44f.svg)](https://github.com/chnacssa/qingtian/releases/tag/v0.1.0)
+[![Python](https://img.shields.io/badge/python-3.12%2B-3776AB.svg)](qingtian/requirements.txt)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16%2B-336791.svg)](docker-compose.yml)
+[![GitHub stars](https://img.shields.io/github/stars/chnacssa/qingtian?style=social)](https://github.com/chnacssa/qingtian/stargazers)
+
 **简体中文** | [English](README.md)
 > **企业落地 AI Agent 的完整操作系统**——不是框架、不是 Demo、不是聊天机器人。
 
